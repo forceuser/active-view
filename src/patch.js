@@ -2,7 +2,7 @@ import {action, VDOMN, namespaces, nodeType, voidElements} from "./const";
 import DOMAPI from "./dom-api";
 import diff from "./diff";
 
-function _patch (diff, vnodeListOld, parentNode, absoluteIndex, removeQueue, ns, parentFocused = true, isRoot = true) {
+function _patch (diff, vnodeListOld, focused, parentNode, absoluteIndex, removeQueue, ns, parentFocused = true, isRoot = true) {
 	const vnodeListNew = [];
 	vnodeListOld = vnodeListOld || [];
 
