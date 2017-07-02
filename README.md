@@ -12,12 +12,12 @@ npm i active-view --save
 
 #### Or simply download \*.js file
 
-active-view@0.0.2 minified file: [active-view.min.js](https://github.com/forceuser/active-view/releases/download/0.0.2/active-view.min.js)
+active-view@0.0.3 minified file: [active-view.min.js](https://github.com/forceuser/active-view/releases/download/0.0.3/active-view.min.js)
 
 #### Or just load from CDN
 
 ```html
-<script src="//cdn.rawgit.com/forceuser/active-view/0.0.2/dist/active-view.min.js">
+<script src="//cdn.rawgit.com/forceuser/active-view/0.0.3/dist/active-view.min.js">
 </script>
 ```
 
