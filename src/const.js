@@ -1,9 +1,8 @@
-export const action = {
-	PASSIVE_REMOVE: -1,
-	REMOVE: 0,
-	CREATE: 1,
-	UPDATE: 2,
-};
+import {Enum} from "enumify";
+
+
+export class Action extends Enum {}
+Action.initEnum(["PASSIVE_REMOVE", "REMOVE", "CREATE", "UPDATE"]);
 
 export const VDOMN = {
 	type: 0,

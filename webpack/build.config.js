@@ -27,7 +27,9 @@ module.exports = {
 							modules: false
 						}]
 					],
-					plugins: []
+					plugins: [
+
+					]
 				}
 			}]
 		}]

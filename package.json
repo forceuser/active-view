@@ -1,7 +1,7 @@
 {
 	"name": "active-view",
-	"version": "0.0.3",
-	"description": "Simple virtual dom implementation",
+	"version": "0.0.4",
+	"description": "Small and modular virtual DOM library",
 	"main": "dist/active-view.js",
 	"module": "index.js",
 	"engines": {
@@ -11,8 +11,10 @@
 		"test": "eslint . && webpack --hide-modules --config ./webpack/test.config.js && nyc --reporter=lcov node ./test/build/index.js | faucet && nyc report",
 		"fix": "eslint --fix .",
 		"coverage": "codecov",
+		"serve": "http-server -a localhost -p 8061",
 		"build": "webpack --config ./webpack/build.config.js",
 		"documentation": "documentation build src/index.js -f md > DOCUMENTATION.md",
+		"release": "npm run patch-release",
 		"patch-release": "npm test && npm run build && npm run documentation && va-release --version patch",
 		"minor-release": "npm test && npm run build && npm run documentation && va-release --version minor",
 		"major-release": "npm test && npm run build && npm run documentation && va-release --version major"
@@ -34,16 +36,14 @@
 		"url": "git+https://github.com/forceuser/active-view.git"
 	},
 	"keywords": [
-		"active data",
+		"active view",
+		"virtual",
+		"dom",
 		"react",
 		"reactjs",
-		"reactive",
-		"data manager",
 		"data binding",
-		"observable",
-		"model",
-		"state",
-		"managment"
+		"json",
+		"render"
 	],
 	"author": {
 		"name": "Vitaly Dub",
@@ -54,12 +54,15 @@
 		"url": "https://github.com/forceuser/active-view/issues"
 	},
 	"homepage": "https://github.com/forceuser/active-view#readme",
-	"dependencies": {},
+	"dependencies": {
+		"enumify": "^1.0.4"
+	},
 	"devDependencies": {
 		"babel-core": "^6.24.0",
 		"babel-eslint": "7.2.0",
 		"babel-loader": "^7.1.1",
 		"babel-plugin-istanbul": "^4.1.1",
+		"babel-plugin-transform-object-rest-spread": "^6.23.0",
 		"babel-preset-es2015": "^6.24.0",
 		"codecov": "^2.2.0",
 		"documentation": "^4.0.0-rc.1",
@@ -68,6 +71,7 @@
 		"eslint-plugin-import": "2.2.0",
 		"faucet": "0.0.1",
 		"globby": "^6.1.0",
+		"http-server": "^0.10.0",
 		"mocha": "^3.4.1",
 		"nyc": "^11.0.3",
 		"publish-release": "^1.3.3",
