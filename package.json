@@ -1,6 +1,6 @@
 {
 	"name": "active-view",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "Small and modular virtual DOM library",
 	"main": "dist/active-view.js",
 	"module": "index.js",
@@ -78,6 +78,7 @@
 		"semver": "^5.3.0",
 		"shelljs": "^0.7.7",
 		"sinon": "^2.3.6",
+		"sqnc": "^1.0.9",
 		"tape": "^4.7.0",
 		"uglifyjs-webpack-plugin": "^0.4.1",
 		"va-release": "^1.0.8",

@@ -13,7 +13,8 @@
 			]];
 
 			const newNode = ["div", {}, [
-				...sqnc(6, 2).map(key => ["span", {key}, `item${key}`])
+				...sqnc(6, 2).map(key => ["span", {key}, `item${key}`]),
+				["span", {key: 12}, `item12`]
 			]];
 			console.log("oldNode", oldNode);
 			console.log("newNode", newNode);

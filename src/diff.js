@@ -36,37 +36,39 @@ function _diff (n, o) {
 		idx = 0;
 		length = Math.max(newContent.length, oldContent.length);
 		while (idx < length) {
-			const pairIdx = pairs.length;
 			if (oldContent && oldContent[idx]) {
 				const vnode = oldContent[idx];
-				let [type, params, content] = vnode;
-				params = params || {};
+				const type = vnode[VDOMN.type];
+				const content = vnode[VDOMN.content];
+				const params = vnode[VDOMN.params] || {};
 				const key = keyGenOld(params.key, type);
 				const pair = index[key] = index[key] || {type};
+
 				pair.key = params.key;
 				pair.o = {params, content: getContent(content), idx};
 				pair.oldVNode = vnode;
 				pair.action = pair.n ? Action.UPDATE : Action.REMOVE;
 
-				pair.oldIdx = pairIdx;
-				pairs.push(pair);
+				if (pair.idx === undefined) {
+					pair.idx = pairs.length;
+					pairs.push(pair);
+				}
 			}
 			if (newContent && newContent[idx]) {
 				const vnode = newContent[idx];
-				let [type, params, content] = vnode;
-				params = params || {};
+				const type = vnode[VDOMN.type];
+				const content = vnode[VDOMN.content];
+				const params = vnode[VDOMN.params] || {};
 				const key = keyGenNew(params.key, type);
 				const pair = index[key] = index[key] || {type};
+
 				pair.key = params.key;
 				pair.n = {params, content: getContent(content), idx};
 				pair.newVNode = vnode;
 				pair.action = pair.o ? Action.UPDATE : Action.CREATE;
 
-				if (pair.oldIdx === pairIdx) { // do not duplicate
-					pair.newIdx = pairIdx;
-				}
-				else {
-					pair.newIdx = pairs.length;
+				if (pair.idx === undefined) {
+					pair.idx = pairs.length;
 					pairs.push(pair);
 				}
 			}
@@ -78,19 +80,16 @@ function _diff (n, o) {
 		length = pairs.length;
 		while (idx < length) {
 			const pair = pairs[idx];
-			if (pair.action !== Action.UPDATE || pair.newIdx === idx) {
-				const children = _diff(pair.newVNode, pair.oldVNode);
-				const diff = {
-					type: pair.type,
-					key: pair.key,
-					n: pair.n,
-					o: pair.o,
-					action: pair.action,
-					children: children && children.length ? children : null
-				};
-
-				result.push(diff);
-			}
+			const children = _diff(pair.newVNode, pair.oldVNode);
+			const diff = {
+				type: pair.type,
+				key: pair.key,
+				n: pair.n,
+				o: pair.o,
+				action: pair.action,
+				children: children && children.length ? children : null
+			};
+			result.push(diff);
 			idx++;
 		}
 	}
@@ -99,8 +98,9 @@ function _diff (n, o) {
 		length = newContent.length;
 		while (idx < length) {
 			const vnode = newContent[idx];
-			let [type, params, content] = vnode;
-			params = params || {};
+			const type = vnode[VDOMN.type];
+			const content = vnode[VDOMN.content];
+			const params = vnode[VDOMN.params] || {};
 			const children = _diff(vnode, null);
 			const diff = {
 				type,
@@ -119,8 +119,9 @@ function _diff (n, o) {
 		length = oldContent.length;
 		while (idx < length) {
 			const vnode = oldContent[idx];
-			let [type, params, content] = vnode;
-			params = params || {};
+			const type = vnode[VDOMN.type];
+			const content = vnode[VDOMN.content];
+			const params = vnode[VDOMN.params] || {};
 			const diff = {
 				type,
 				key: params.key,
@@ -142,7 +143,7 @@ function _diff (n, o) {
  *
  * @param {VDOMNode} n новое виртуальное DOM дерево
  * @param {VDOMNode} o старое виртуальное DOM дерево (из которого планируется получить новое)
- * @return {DiffResult} результат сравнения, в виде списка операций которые нужно произвести над старым деревом чотбы получить новое
+ * @return {DiffResult} результат сравнения, в виде дерева операций которые нужно произвести над старым деревом чтобы получить новое
  */
 
 export default function diff (n, o) {
