@@ -1,6 +1,6 @@
 {
 	"name": "active-view",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"description": "Small and modular virtual DOM library",
 	"main": "dist/active-view.js",
 	"module": "index.js",
