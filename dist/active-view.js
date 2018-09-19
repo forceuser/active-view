@@ -162,6 +162,8 @@ var voidElements = ["area", "base", "basefont", "bgsound", "br", "col", "command
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = diff;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__const__ = __webpack_require__(2);
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 
@@ -183,6 +185,69 @@ var KeyGen = function KeyGen() {
 
 function getContent(content) {
 	return content !== null && !Array.isArray(content) ? content : null;
+}
+
+// [null, null, "text node"]
+
+// ["div", {prop: {x: 1, y: 2}}]
+// ["div", {prop: {x: 5, z: 3}, attr: {dd: "2323"}}]
+// ["div", {prop: {x: 5, z: 3}}]
+// [
+// 	{path: ["prop", "x"], o: 1, n: 5}, // обновление
+// 	{path: ["prop", "x"], o: 2}, // удаление
+// 	{path: ["prop", "z"], n: 3}, // добавление
+// 	{path: ["attr", "dd"], n: "2323"}, // добавление
+// ];
+
+// [
+// 	{path: ["attr", "dd"], o: "2323"}, // удаление
+// ];
+
+function isPropObj(val) {
+	return val === Object(val) && !Array.isArray(val);
+}
+
+function serialize(val) {
+	return JSON.stringify(val);
+}
+
+function diffObj(n, o, deep) {
+	var path = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+	var result = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [];
+
+	var np = isPropObj(n);
+	var op = isPropObj(o);
+	var upd = {};
+	if (!np && !op || deep && deep <= path.length) {
+		if (serialize(o) !== serialize(n)) {
+			result.push({ path: path, o: o, n: n });
+		}
+		return result;
+	}
+
+	if (np) {
+		var nk = Object.keys(n);
+		var i = 0;
+		while (i < nk.length) {
+			var key = nk[i];
+			upd[key] = true;
+			diffObj(n[key], o ? o[key] : undefined, deep, [].concat(_toConsumableArray(path), [key]), result);
+			i++;
+		}
+	}
+	if (op) {
+		var _i = 0;
+		var ok = Object.keys(o);
+		while (_i < ok.length) {
+			var _key = ok[_i];
+			if (!upd[_key]) {
+				diffObj(undefined, o[_key], deep, [].concat(_toConsumableArray(path), [_key]), result);
+				// result[[...path, key].join(".")] = {o: o[key]};
+			}
+			_i++;
+		}
+	}
+	return result;
 }
 
 function _diff(n, o) {
@@ -225,8 +290,8 @@ function _diff(n, o) {
 				var _type = _vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].type];
 				var _content = _vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
 				var _params = _vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].params] || {};
-				var _key = keyGenNew(_params.key, _type);
-				var _pair = index[_key] = index[_key] || { type: _type };
+				var _key2 = keyGenNew(_params.key, _type);
+				var _pair = index[_key2] = index[_key2] || { type: _type };
 
 				_pair.key = _params.key;
 				_pair.n = { params: _params, content: getContent(_content), idx: idx };
@@ -253,7 +318,8 @@ function _diff(n, o) {
 				n: _pair2.n,
 				o: _pair2.o,
 				action: _pair2.action,
-				children: children && children.length ? children : null
+				children: children && children.length ? children : null,
+				params: _pair2.action !== __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].REMOVE ? diffObj(_pair2.n.params, _pair2.action === __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].UPDATE ? _pair2.o.params : null, 2) : {}
 			};
 			result.push(_diff2);
 			idx++;
@@ -273,7 +339,8 @@ function _diff(n, o) {
 				key: _params2.key,
 				n: { params: _params2, content: getContent(_content2), idx: idx },
 				action: __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].CREATE,
-				children: _children && _children.length ? _children : null
+				children: _children && _children.length ? _children : null,
+				params: diffObj(_params2, {}, 2)
 			};
 
 			result.push(_diff3);
@@ -293,7 +360,8 @@ function _diff(n, o) {
 				key: _params3.key,
 				o: { params: _params3, content: getContent(_content3), idx: idx },
 				action: __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].PASSIVE_REMOVE,
-				children: _diff(null, _vnode3)
+				children: _diff(null, _vnode3),
+				params: {}
 			};
 
 			result.push(_diff4);

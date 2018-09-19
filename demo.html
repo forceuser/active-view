@@ -9,11 +9,11 @@
 	<body>
 		<script>
 			const oldNode = ["div", {}, [
-				...sqnc(1, 10).map(key => ["span", {key}, `item${key}`])
+				...sqnc(1, 10).map(key => ["span", {key, a: 1, b: 2, attr: {x: 1, y: 5, obj: {aa: 1}}, prop: {d: 1}}, `item${key}`])
 			]];
 
 			const newNode = ["div", {}, [
-				...sqnc(6, 2).map(key => ["span", {key}, `item${key}`]),
+				...sqnc(6, 2).map(key => ["span", {key, a:5, c: 3, attr: {x: 2, z: 0, obj: {aa: 2}}, style: {color: "white"}}, `item${key}`]),
 				["span", {key: 12}, `item12`]
 			]];
 			console.log("oldNode", oldNode);

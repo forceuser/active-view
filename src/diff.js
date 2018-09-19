@@ -19,6 +19,66 @@ function getContent (content) {
 	return content !== null && !Array.isArray(content) ? content : null;
 }
 
+// [null, null, "text node"]
+
+// ["div", {prop: {x: 1, y: 2}}]
+// ["div", {prop: {x: 5, z: 3}, attr: {dd: "2323"}}]
+// ["div", {prop: {x: 5, z: 3}}]
+// [
+// 	{path: ["prop", "x"], o: 1, n: 5}, // обновление
+// 	{path: ["prop", "x"], o: 2}, // удаление
+// 	{path: ["prop", "z"], n: 3}, // добавление
+// 	{path: ["attr", "dd"], n: "2323"}, // добавление
+// ];
+
+// [
+// 	{path: ["attr", "dd"], o: "2323"}, // удаление
+// ];
+
+function isPropObj (val) {
+	return val === Object(val) && !Array.isArray(val);
+}
+
+function serialize (val) {
+	return JSON.stringify(val);
+}
+
+function diffObj (n, o, deep, path = [], result = []) {
+	const np = isPropObj(n);
+	const op = isPropObj(o);
+	const upd = {};
+	if ((!np && !op) || (deep && deep <= path.length)) {
+		if (serialize(o) !== serialize(n)) {
+			result.push({path, o, n});
+		}
+		return result;
+	}
+
+	if (np) {
+		const nk = Object.keys(n);
+		let i = 0;
+		while (i < nk.length) {
+			const key = nk[i];
+			upd[key] = true;
+			diffObj(n[key], o ? o[key] : undefined, deep, [...path, key], result);
+			i++;
+		}
+	}
+	if (op) {
+		let i = 0;
+		const ok = Object.keys(o);
+		while (i < ok.length) {
+			const key = ok[i];
+			if (!upd[key]) {
+				diffObj(undefined, o[key], deep, [...path, key], result);
+				// result[[...path, key].join(".")] = {o: o[key]};
+			}
+			i++;
+		}
+	}
+	return result;
+}
+
 function _diff (n, o) {
 	const newContent = !n || !Array.isArray(n[VDOMN.content]) ? null : n[VDOMN.content];
 	const oldContent = !o || !Array.isArray(o[VDOMN.content]) ? null : o[VDOMN.content];
@@ -87,7 +147,8 @@ function _diff (n, o) {
 				n: pair.n,
 				o: pair.o,
 				action: pair.action,
-				children: children && children.length ? children : null
+				children: children && children.length ? children : null,
+				params: pair.action !== Action.REMOVE ? diffObj(pair.n.params, pair.action === Action.UPDATE ? pair.o.params : null, 2) : {},
 			};
 			result.push(diff);
 			idx++;
@@ -107,7 +168,8 @@ function _diff (n, o) {
 				key: params.key,
 				n: {params, content: getContent(content), idx},
 				action: Action.CREATE,
-				children: children && children.length ? children : null
+				children: children && children.length ? children : null,
+				params: diffObj(params, {}, 2),
 			};
 
 			result.push(diff);
@@ -128,6 +190,7 @@ function _diff (n, o) {
 				o: {params, content: getContent(content), idx},
 				action: Action.PASSIVE_REMOVE,
 				children: _diff(null, vnode),
+				params: {},
 			};
 
 			result.push(diff);
