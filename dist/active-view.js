@@ -103,7 +103,7 @@ module.exports = __webpack_require__(0).default;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return Action; });
+/* unused harmony export Action */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return VDOMN; });
 /* unused harmony export namespaces */
 /* unused harmony export nodeType */
@@ -183,25 +183,13 @@ var KeyGen = function KeyGen() {
 	};
 };
 
+function isAbsKey(val) {
+	return (val || "").toString().startsWith("#");
+}
+
 function getContent(content) {
 	return content !== null && !Array.isArray(content) ? content : null;
 }
-
-// [null, null, "text node"]
-
-// ["div", {prop: {x: 1, y: 2}}]
-// ["div", {prop: {x: 5, z: 3}, attr: {dd: "2323"}}]
-// ["div", {prop: {x: 5, z: 3}}]
-// [
-// 	{path: ["prop", "x"], o: 1, n: 5}, // обновление
-// 	{path: ["prop", "x"], o: 2}, // удаление
-// 	{path: ["prop", "z"], n: 3}, // добавление
-// 	{path: ["attr", "dd"], n: "2323"}, // добавление
-// ];
-
-// [
-// 	{path: ["attr", "dd"], o: "2323"}, // удаление
-// ];
 
 function isPropObj(val) {
 	return val === Object(val) && !Array.isArray(val);
@@ -242,7 +230,6 @@ function diffObj(n, o, deep) {
 			var _key = ok[_i];
 			if (!upd[_key]) {
 				diffObj(undefined, o[_key], deep, [].concat(_toConsumableArray(path), [_key]), result);
-				// result[[...path, key].join(".")] = {o: o[key]};
 			}
 			_i++;
 		}
@@ -250,126 +237,46 @@ function diffObj(n, o, deep) {
 	return result;
 }
 
-function _diff(n, o) {
-	var newContent = !n || !Array.isArray(n[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content]) ? null : n[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
-	var oldContent = !o || !Array.isArray(o[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content]) ? null : o[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
-	var result = [];
+function diffOne() {
+	var branch = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "d";
+	var parentVNode = arguments[1];
+	var pairs = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+	var path = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+	var keyPath = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [];
+	var fullKeyPath = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : [];
+
+	var parentContent = !parentVNode || !Array.isArray(parentVNode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content]) ? null : parentVNode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
 	var idx = void 0;
 	var length = void 0;
-
-	if (newContent && oldContent) {
-		// first run: find pairs
-		var index = {};
-		var keyGenNew = new KeyGen();
-		var keyGenOld = new KeyGen();
-		var pairs = [];
-
+	if (parentContent) {
+		var keyGen = new KeyGen();
 		idx = 0;
-		length = Math.max(newContent.length, oldContent.length);
+		length = parentContent.length;
 		while (idx < length) {
-			if (oldContent && oldContent[idx]) {
-				var vnode = oldContent[idx];
-				var type = vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].type];
-				var content = vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
-				var params = vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].params] || {};
-				var key = keyGenOld(params.key, type);
-				var pair = index[key] = index[key] || { type: type };
-
-				pair.key = params.key;
-				pair.o = { params: params, content: getContent(content), idx: idx };
-				pair.oldVNode = vnode;
-				pair.action = pair.n ? __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].UPDATE : __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].REMOVE;
-
-				if (pair.idx === undefined) {
-					pair.idx = pairs.length;
-					pairs.push(pair);
-				}
+			var vnode = parentContent[idx];
+			var type = vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].type];
+			var content = vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
+			var params = vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].params] || {};
+			var key = keyGen(params.key, type);
+			var isAbs = isAbsKey(params.key);
+			var _path = [].concat(_toConsumableArray(path), [idx]);
+			var _keyPath = isAbs ? [key] : [].concat(_toConsumableArray(keyPath), [key]);
+			var _fullKeyPath = [].concat(_toConsumableArray(fullKeyPath), [key]);
+			var abs = _keyPath.join("/");
+			var pair = void 0;
+			if (pairs[abs]) {
+				pair = pairs[abs];
+			} else {
+				pair = {};
+				pairs[abs] = pair;
 			}
-			if (newContent && newContent[idx]) {
-				var _vnode = newContent[idx];
-				var _type = _vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].type];
-				var _content = _vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
-				var _params = _vnode[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].params] || {};
-				var _key2 = keyGenNew(_params.key, _type);
-				var _pair = index[_key2] = index[_key2] || { type: _type };
 
-				_pair.key = _params.key;
-				_pair.n = { params: _params, content: getContent(_content), idx: idx };
-				_pair.newVNode = _vnode;
-				_pair.action = _pair.o ? __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].UPDATE : __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].CREATE;
-
-				if (_pair.idx === undefined) {
-					_pair.idx = pairs.length;
-					pairs.push(_pair);
-				}
-			}
-			idx++;
-		}
-
-		// second run: generate result
-		idx = 0;
-		length = pairs.length;
-		while (idx < length) {
-			var _pair2 = pairs[idx];
-			var children = _diff(_pair2.newVNode, _pair2.oldVNode);
-			var _diff2 = {
-				type: _pair2.type,
-				key: _pair2.key,
-				n: _pair2.n,
-				o: _pair2.o,
-				action: _pair2.action,
-				children: children && children.length ? children : null,
-				params: _pair2.action !== __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].REMOVE ? diffObj(_pair2.n.params, _pair2.action === __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].UPDATE ? _pair2.o.params : null, 2) : {}
-			};
-			result.push(_diff2);
-			idx++;
-		}
-	} else if (newContent) {
-		// fast passive create
-		idx = 0;
-		length = newContent.length;
-		while (idx < length) {
-			var _vnode2 = newContent[idx];
-			var _type2 = _vnode2[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].type];
-			var _content2 = _vnode2[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
-			var _params2 = _vnode2[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].params] || {};
-			var _children = _diff(_vnode2, null);
-			var _diff3 = {
-				type: _type2,
-				key: _params2.key,
-				n: { params: _params2, content: getContent(_content2), idx: idx },
-				action: __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].CREATE,
-				children: _children && _children.length ? _children : null,
-				params: diffObj(_params2, {}, 2)
-			};
-
-			result.push(_diff3);
-			idx++;
-		}
-	} else if (oldContent) {
-		// fast passive remove
-		idx = 0;
-		length = oldContent.length;
-		while (idx < length) {
-			var _vnode3 = oldContent[idx];
-			var _type3 = _vnode3[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].type];
-			var _content3 = _vnode3[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].content];
-			var _params3 = _vnode3[__WEBPACK_IMPORTED_MODULE_0__const__["a" /* VDOMN */].params] || {};
-			var _diff4 = {
-				type: _type3,
-				key: _params3.key,
-				o: { params: _params3, content: getContent(_content3), idx: idx },
-				action: __WEBPACK_IMPORTED_MODULE_0__const__["b" /* Action */].PASSIVE_REMOVE,
-				children: _diff(null, _vnode3),
-				params: {}
-			};
-
-			result.push(_diff4);
+			pair.key = params.key;
+			pair[branch] = { path: _path, params: params, fullPath: _fullKeyPath, content: getContent(content) };
+			diffOne(branch, vnode, pairs, _path, _keyPath, _fullKeyPath);
 			idx++;
 		}
 	}
-
-	return result;
 }
 
 /**
@@ -382,8 +289,77 @@ function _diff(n, o) {
 
 function diff(n, o) {
 	// Wrap vnodes to consume
+	var pairs = {};
+	diffOne("n", [null, null, n ? [n] : null], pairs);
+	diffOne("o", [null, null, o ? [o] : null], pairs);
+	var result = Object.keys(pairs).map(function (key) {
+		var pair = pairs[key];
+		var nparams = void 0;
+		var oparams = void 0;
+		var ncontent = void 0;
+		var ocontent = void 0;
+		pair.path = {};
+		pair.fullPath = {};
+		if (pair.n) {
+			nparams = pair.n.params;
+			ncontent = pair.n.content;
+			pair.path.n = pair.n.path;
+			pair.fullPath.n = pair.n.fullPath;
+			delete pair.n;
+		}
+		if (pair.o) {
+			oparams = pair.o.params;
+			ocontent = pair.o.content;
+			pair.path.o = pair.o.path;
+			pair.fullPath.o = pair.o.fullPath;
+			delete pair.o;
+		}
+		if (nparams || oparams) {
+			pair.params = diffObj(nparams, oparams, 2);
+		}
+		if (ncontent !== ocontent) {
+			pair.content = {
+				o: ocontent,
+				n: ncontent
+			};
+		}
+
+		return pair;
+	}).sort(function (a, b) {
+		if (a.path.n && b.path.n) {
+			if (a.path.n < b.path.n) {
+				return -1;
+			}
+			if (a.path.n > b.path.n) {
+				return 1;
+			}
+		} else if (b.path.n) {
+			if (a.path.o <= b.path.n) {
+				return -1;
+			}
+			if (a.path.o > b.path.n) {
+				return 1;
+			}
+		} else if (a.path.n) {
+			if (a.path.n < b.path.o) {
+				return -1;
+			}
+			if (a.path.n >= b.path.o) {
+				return 1;
+			}
+		} else {
+			if (a.path.o < b.path.o) {
+				return -1;
+			}
+			if (a.path.o > b.path.o) {
+				return 1;
+			}
+		}
+		return 0;
+	});
+
 	return {
-		diff: _diff([null, null, n ? [n] : null], [null, null, o ? [o] : null])
+		diff: result
 	};
 }
 

@@ -8,13 +8,41 @@
 	</head>
 	<body>
 		<script>
+			// const oldNode = ["div", {}, [
+			// 	...sqnc(1, 11).map(key => ["span", {key, a: 1, b: 2, attr: {x: 1, y: 5, obj: {aa: 1}}, prop: {d: 1}}, `item${key}`])
+			// ]];
+
+			// const newNode = ["div", {}, [
+			// 	...sqnc(6, 2).filter(i => i !== 3).map(key => ["span", {key, a:5, c: 3, attr: {x: 2, z: 0, obj: {aa: 2}}, style: {color: "white"}}, `item${key}xx`]),
+			// 	["span", {key: 12}, `item12`]
+			// ]];
 			const oldNode = ["div", {}, [
-				...sqnc(1, 10).map(key => ["span", {key, a: 1, b: 2, attr: {x: 1, y: 5, obj: {aa: 1}}, prop: {d: 1}}, `item${key}`])
+				["span", {key: 1}, "item1"],
+				["span", {key: 2}, "item2"],
+				["span", {key: 3}, "item3"],
+				["span", {key: 4}, "item4"],
+				["span", {key: 5}, "item5"],
+				["span", {key: 6}, "item6"],
+				["span", {key: 7}, "item7"],
+				["span", {key: 8}, "item8"],
+				["span", {key: 9}, "item9"],
+				["span", {key: 10}, "item10"],
+				["span", {key: 11}, "item11"],
 			]];
 
 			const newNode = ["div", {}, [
-				...sqnc(6, 2).map(key => ["span", {key, a:5, c: 3, attr: {x: 2, z: 0, obj: {aa: 2}}, style: {color: "white"}}, `item${key}`]),
-				["span", {key: 12}, `item12`]
+				["span", {key: 1}, "item1"],
+				["span", {key: 2}, "item2"],
+				// ["span", {key: 4}, "item4"],
+				["span", {key: 5}, "item5"],
+				["span", {key: 13}, "item13"],
+				["span", {key: 7}, "item7"],
+				["span", {key: 3}, "item3"],
+				["span", {key: 6}, "item6"],
+				["span", {key: 8}, "item8"],
+				["span", {key: 9}, "item9"],
+				["span", {key: 10}, "item10"],
+				["span", {key: 11}, "item11"],
 			]];
 			console.log("oldNode", oldNode);
 			console.log("newNode", newNode);

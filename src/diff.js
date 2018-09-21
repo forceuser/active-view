@@ -1,5 +1,4 @@
-import {Action, VDOMN} from "./const";
-
+import {VDOMN} from "./const";
 class KeyGen {
 	constructor () {
 		const storage = {};
@@ -15,25 +14,13 @@ class KeyGen {
 	}
 }
 
+function isAbsKey (val) {
+	return (val || "").toString().startsWith("#");
+}
+
 function getContent (content) {
 	return content !== null && !Array.isArray(content) ? content : null;
 }
-
-// [null, null, "text node"]
-
-// ["div", {prop: {x: 1, y: 2}}]
-// ["div", {prop: {x: 5, z: 3}, attr: {dd: "2323"}}]
-// ["div", {prop: {x: 5, z: 3}}]
-// [
-// 	{path: ["prop", "x"], o: 1, n: 5}, // обновление
-// 	{path: ["prop", "x"], o: 2}, // удаление
-// 	{path: ["prop", "z"], n: 3}, // добавление
-// 	{path: ["attr", "dd"], n: "2323"}, // добавление
-// ];
-
-// [
-// 	{path: ["attr", "dd"], o: "2323"}, // удаление
-// ];
 
 function isPropObj (val) {
 	return val === Object(val) && !Array.isArray(val);
@@ -71,7 +58,6 @@ function diffObj (n, o, deep, path = [], result = []) {
 			const key = ok[i];
 			if (!upd[key]) {
 				diffObj(undefined, o[key], deep, [...path, key], result);
-				// result[[...path, key].join(".")] = {o: o[key]};
 			}
 			i++;
 		}
@@ -79,126 +65,40 @@ function diffObj (n, o, deep, path = [], result = []) {
 	return result;
 }
 
-function _diff (n, o) {
-	const newContent = !n || !Array.isArray(n[VDOMN.content]) ? null : n[VDOMN.content];
-	const oldContent = !o || !Array.isArray(o[VDOMN.content]) ? null : o[VDOMN.content];
-	const result = [];
+function diffOne (branch = "d", parentVNode, pairs = {}, path = [], keyPath = [], fullKeyPath = []) {
+	const parentContent = !parentVNode || !Array.isArray(parentVNode[VDOMN.content]) ? null : parentVNode[VDOMN.content];
 	let idx;
 	let length;
-
-	if (newContent && oldContent) {
-        // first run: find pairs
-		const index = {};
-		const keyGenNew = new KeyGen();
-		const keyGenOld = new KeyGen();
-		const pairs = [];
-
+	if (parentContent) {
+		const keyGen = new KeyGen();
 		idx = 0;
-		length = Math.max(newContent.length, oldContent.length);
+		length = parentContent.length;
 		while (idx < length) {
-			if (oldContent && oldContent[idx]) {
-				const vnode = oldContent[idx];
-				const type = vnode[VDOMN.type];
-				const content = vnode[VDOMN.content];
-				const params = vnode[VDOMN.params] || {};
-				const key = keyGenOld(params.key, type);
-				const pair = index[key] = index[key] || {type};
-
-				pair.key = params.key;
-				pair.o = {params, content: getContent(content), idx};
-				pair.oldVNode = vnode;
-				pair.action = pair.n ? Action.UPDATE : Action.REMOVE;
-
-				if (pair.idx === undefined) {
-					pair.idx = pairs.length;
-					pairs.push(pair);
-				}
-			}
-			if (newContent && newContent[idx]) {
-				const vnode = newContent[idx];
-				const type = vnode[VDOMN.type];
-				const content = vnode[VDOMN.content];
-				const params = vnode[VDOMN.params] || {};
-				const key = keyGenNew(params.key, type);
-				const pair = index[key] = index[key] || {type};
-
-				pair.key = params.key;
-				pair.n = {params, content: getContent(content), idx};
-				pair.newVNode = vnode;
-				pair.action = pair.o ? Action.UPDATE : Action.CREATE;
-
-				if (pair.idx === undefined) {
-					pair.idx = pairs.length;
-					pairs.push(pair);
-				}
-			}
-			idx++;
-		}
-
-        // second run: generate result
-		idx = 0;
-		length = pairs.length;
-		while (idx < length) {
-			const pair = pairs[idx];
-			const children = _diff(pair.newVNode, pair.oldVNode);
-			const diff = {
-				type: pair.type,
-				key: pair.key,
-				n: pair.n,
-				o: pair.o,
-				action: pair.action,
-				children: children && children.length ? children : null,
-				params: pair.action !== Action.REMOVE ? diffObj(pair.n.params, pair.action === Action.UPDATE ? pair.o.params : null, 2) : {},
-			};
-			result.push(diff);
-			idx++;
-		}
-	}
-	else if (newContent) { // fast passive create
-		idx = 0;
-		length = newContent.length;
-		while (idx < length) {
-			const vnode = newContent[idx];
+			const vnode = parentContent[idx];
 			const type = vnode[VDOMN.type];
 			const content = vnode[VDOMN.content];
 			const params = vnode[VDOMN.params] || {};
-			const children = _diff(vnode, null);
-			const diff = {
-				type,
-				key: params.key,
-				n: {params, content: getContent(content), idx},
-				action: Action.CREATE,
-				children: children && children.length ? children : null,
-				params: diffObj(params, {}, 2),
-			};
+			const key = keyGen(params.key, type);
+			const isAbs = isAbsKey(params.key);
+			const _path = [...path, idx];
+			const _keyPath = isAbs ? [key] : [...keyPath, key];
+			const _fullKeyPath = [...fullKeyPath, key];
+			const abs = _keyPath.join("/");
+			let pair;
+			if (pairs[abs]) {
+				pair = pairs[abs];
+			}
+			else {
+				pair = {};
+				pairs[abs] = pair;
+			}
 
-			result.push(diff);
+			pair.key = params.key;
+			pair[branch] = {path: _path, params, fullPath: _fullKeyPath, content: getContent(content)};
+			diffOne(branch, vnode, pairs, _path, _keyPath, _fullKeyPath);
 			idx++;
 		}
 	}
-	else if (oldContent) { // fast passive remove
-		idx = 0;
-		length = oldContent.length;
-		while (idx < length) {
-			const vnode = oldContent[idx];
-			const type = vnode[VDOMN.type];
-			const content = vnode[VDOMN.content];
-			const params = vnode[VDOMN.params] || {};
-			const diff = {
-				type,
-				key: params.key,
-				o: {params, content: getContent(content), idx},
-				action: Action.PASSIVE_REMOVE,
-				children: _diff(null, vnode),
-				params: {},
-			};
-
-			result.push(diff);
-			idx++;
-		}
-	}
-
-	return result;
 }
 
 /**
@@ -211,10 +111,64 @@ function _diff (n, o) {
 
 export default function diff (n, o) {
 	// Wrap vnodes to consume
+	const pairs = {};
+	diffOne("n", [null, null, n ? [n] : null], pairs);
+	diffOne("o", [null, null, o ? [o] : null], pairs);
+	const result = Object.keys(pairs).map(key => {
+		const pair = pairs[key];
+		let nparams;
+		let oparams;
+		let ncontent;
+		let ocontent;
+		pair.path = {};
+		pair.fullPath = {};
+		if (pair.n) {
+			nparams = pair.n.params;
+			ncontent = pair.n.content;
+			pair.path.n = pair.n.path;
+			pair.fullPath.n = pair.n.fullPath;
+			delete pair.n;
+		}
+		if (pair.o) {
+			oparams = pair.o.params;
+			ocontent = pair.o.content;
+			pair.path.o = pair.o.path;
+			pair.fullPath.o = pair.o.fullPath;
+			delete pair.o;
+		}
+		if (nparams || oparams) {
+			pair.params = diffObj(nparams, oparams, 2);
+		}
+		if (ncontent !== ocontent) {
+			pair.content = {
+				o: ocontent,
+				n: ncontent,
+			};
+		}
+
+		return pair;
+	})
+	.sort((a, b) => {
+		if (a.path.n && b.path.n) {
+			if (a.path.n < b.path.n) {return -1;}
+			if (a.path.n > b.path.n) {return 1;}
+		}
+		else if (b.path.n) {
+			if (a.path.o <= b.path.n) {return -1;}
+			if (a.path.o > b.path.n) {return 1;}
+		}
+		else if (a.path.n) {
+			if (a.path.n < b.path.o) {return -1;}
+			if (a.path.n >= b.path.o) {return 1;}
+		}
+		else {
+			if (a.path.o < b.path.o) {return -1;}
+			if (a.path.o > b.path.o) {return 1;}
+		}
+		return 0;
+	});
+
 	return {
-		diff: _diff(
-            [null, null, n ? [n] : null],
-            [null, null, o ? [o] : null]
-        )
+		diff: result,
 	};
 }
