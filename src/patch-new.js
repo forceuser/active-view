@@ -53,10 +53,12 @@ export function patch (newVNode, oldVNode, diffData, bindMode = false) {
 		diffData = diff(newVNode, oldVNode);
 	}
 	let i = 0;
-	const deletions = {};
+	const shift = {};
 	const length = diffData.length;
 	while (i < length) {
-		applyDiff(newVNode, oldVNode, diffData[i], bindMode, deletions);
+		if ()
+
+		// applyDiff(newVNode, oldVNode, diffData[i], bindMode, shift);
 		i++;
 	}
 }
