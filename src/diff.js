@@ -181,11 +181,16 @@ export default function diff (n, o) {
 
 	pairsKeys.forEach(key => {
 		const pair = pairs[key];
-		if (pair.o && !pair.n) {
+		let newParent = false;
+		if (pair.o && pair.n) {
+			newParent = pair.n.parentPath !== pair.o.parentPath;
+		}
+
+		if ((pair.o && !pair.n) || newParent) {
 			addShift(oshifts, pair.o.path, 1);
 		}
 
-		if (pair.n && !pair.o) {
+		if ((pair.n && !pair.o) || newParent) {
 			addShift(nshifts, pair.n.path, -1);
 		}
 		// console.log("shifts", JSON.stringify(shifts));
