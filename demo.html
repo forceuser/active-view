@@ -46,7 +46,7 @@
 			// ]];
 
 			const oldNode = [
-				["img", {key: "#haha"}],
+				["section", {key: "#haha"}, "someContent"],
 				["div", {}, [
 					["span", {key: 1}, "item1"],
 					["span", {key: 2}, "item2"],
@@ -61,7 +61,7 @@
 					["span", {key: 2}, "item2"],
 					["span", {key: 4}, "item4"],
 					["span", {key: 5}, "item5"],
-					["img", {key: "#haha"}],
+					["section", {key: "#haha"}, "someOtherContent"],
 				]]
 			];
 
@@ -69,6 +69,55 @@
 			console.log("oldNode", oldNode);
 			console.log("newNode", newNode);
 			console.log(activeView.diff(newNode, oldNode));
+
+			console.log(activeView.diff(
+				[
+					["span", {key: 3}, "item3"],
+					["span", {key: 2}, "item2"],
+					["span", {key: 4}, "item4"],
+					["span", {key: 5}, "item5"],
+					["img", {key: "#haha"}],
+				],
+				[
+					["span", {key: 1}, "item1"],
+					["span", {key: 2}, "item2"],
+					["span", {key: 3}, "item3"],
+					["span", {key: 4}, "item4"],
+				],
+			));
+
+			console.log(activeView.diff(
+				[
+					["span", {key: 3}, "item3"],
+					["span", {key: 2}, "item2"],
+					["span", {key: 4}, "item4"],
+					["span", {key: 5}, "item5"],
+					["img", {key: "#haha"}],
+				],
+				[
+				],
+			));
+
+			// example with bad diff optimization
+			console.log(activeView.diff(
+				[
+					["span", {key: 2}, "item2"],
+					["span", {key: 3}, "item3"],
+					["span", {key: 4}, "item4"],
+					["span", {key: 5}, "item5"],
+					["span", {key: 1}, "item1"],
+				],
+				[
+					["span", {key: 1}, "item1"],
+					["span", {key: 2}, "item2"],
+					["span", {key: 3}, "item3"],
+					["span", {key: 4}, "item4"],
+					["span", {key: 5}, "item5"],
+				],
+			));
+
+			// 1. переделать все на while цыклы
+			// 2. сделать два направления движения diff цикла и отметки на обработанных нодах
 		</script>
 	</body>
 </html>

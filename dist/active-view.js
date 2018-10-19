@@ -348,11 +348,15 @@ function diff(n, o) {
 	// 1 === accordance map
 	diffOne("n", [null, null, n], pairs);
 	diffOne("o", [null, null, o], pairs);
-	console.log("pairs", pairs);
+	// console.log("pairs", pairs);
 	// 2 === shift map
 	var pairsKeys = Object.keys(pairs);
+	var i = void 0;
+	var pairKeysLength = pairsKeys.length;
 
-	pairsKeys.forEach(function (key) {
+	i = 0;
+	while (i < pairKeysLength) {
+		var key = pairsKeys[i];
 		var pair = pairs[key];
 		var newParent = false;
 		if (pair.o && pair.n) {
@@ -366,155 +370,86 @@ function diff(n, o) {
 		if (pair.n && !pair.o || newParent) {
 			addShift(nshifts, pair.n.path, -1);
 		}
-		// console.log("shifts", JSON.stringify(shifts));
-	});
+		i++;
+	}
+	// 3 === diff
+
 	var moveOld = [];
 	var moveNew = [];
-	console.log("nshifts", JSON.stringify(nshifts));
-	console.log("oshifts", JSON.stringify(oshifts));
-	pairsKeys.forEach(function (key) {
-		var pair = pairs[key];
+
+	i = 0;
+	while (i < pairKeysLength) {
+		var _key2 = pairsKeys[i];
+		var _pair = pairs[_key2];
 		var npath = void 0;
 		var opath = void 0;
 		var nparams = void 0;
 		var oparams = void 0;
-		if (pair.n) {
-			npath = pair.n.path;
-			nparams = pair.n.params;
+		if (_pair.n) {
+			npath = _pair.n.path;
+			nparams = _pair.n.params;
 		}
-		if (pair.o) {
-			opath = pair.o.path;
-			oparams = pair.o.params;
+		if (_pair.o) {
+			opath = _pair.o.path;
+			oparams = _pair.o.params;
 		}
 		var modify = diffObj(nparams, oparams, 2);
 		if (npath && opath) {
 			var ni = 0;
 			var oi = 0;
-			var newParent = pair.n.parentPath !== pair.o.parentPath;
-			if (!newParent) {
+			var _newParent = _pair.n.parentPath !== _pair.o.parentPath;
+			if (!_newParent) {
 				addShift(oshifts, opath, 1);
 				addShift(nshifts, npath, -1);
 				ni = npath[npath.length - 1] + getShift(oshifts, opath) + getShift(nshifts, npath);
 				oi = opath[opath.length - 1];
 			}
 
-			if (newParent || ni !== oi) {
+			if (_newParent || ni !== oi) {
 				// move (cut, paste)
-				var item = { act: "cut", o: opath, pair: pair };
+				var item = { act: "cut", o: opath, pair: _pair };
 				if (modify.length) {
 					item.modify = modify;
 				}
+				if (_pair.o.content !== _pair.n.content) {
+					item.content = { o: _pair.o.content, n: _pair.n.content };
+				}
 				moveOld.push(item);
-				moveNew.push({ act: "paste", n: npath, o: opath, pair: pair });
+				moveNew.push({ act: "paste", n: npath, o: opath, pair: _pair });
 			} else {
 				// else nomove
-				var _item = { n: npath, o: opath, pair: pair };
+				var _item = { n: npath, o: opath, pair: _pair };
 				if (modify.length) {
 					_item.modify = modify;
 				}
-				moveNew.push(_item);
+				if (_pair.o.content !== _pair.n.content) {
+					_item.content = { o: _pair.o.content, n: _pair.n.content };
+				}
+				moveOld.push(_item);
 			}
 		} else if (opath) {
 			// delete
-			moveOld.push({ act: "del", o: opath, pair: pair });
+			moveOld.push({ act: "del", o: opath, pair: _pair });
 		} else {
 			// if (npath) // add
-			var _item2 = { act: "add", n: npath, pair: pair };
+			var _item2 = { act: "add", n: npath, pair: _pair };
 			if (modify.length) {
 				_item2.modify = modify;
 			}
+			if (_pair.n.content) {
+				_item2.content = { n: _pair.n.content };
+			}
 			moveNew.push(_item2);
 		}
-		// check for changes
-	});
-
-	// const result = Object.keys(pairs).map(key => {
-	// 	const pair = pairs[key];
-	// 	let nparams;
-	// 	let oparams;
-	// 	let ncontent;
-	// 	let ocontent;
-	// 	pair.path = {};
-	// 	pair.fullPath = {};
-	// 	if (pair.n) {
-	// 		nparams = pair.n.params;
-	// 		ncontent = pair.n.content;
-	// 		pair.path.n = pair.n.path;
-	// 		pair.fullPath.n = pair.n.fullPath;
-	// 		delete pair.n;
-	// 	}
-	// 	if (pair.o) {
-	// 		oparams = pair.o.params;
-	// 		ocontent = pair.o.content;
-	// 		pair.path.o = pair.o.path;
-	// 		pair.fullPath.o = pair.o.fullPath;
-	// 		delete pair.o;
-	// 	}
-	// 	if (nparams || oparams) {
-	// 		pair.params = diffObj(nparams, oparams, 2);
-	// 	}
-	// 	if (ncontent !== ocontent) {
-	// 		pair.content = {
-	// 			o: ocontent,
-	// 			n: ncontent,
-	// 		};
-	// 	}
-
-
-	// 	return pair;
-	// });
-
-	// .sort((a, b) => {
-	// 	let ap = 0;
-	// 	let bp = 0;
-	// 	const ov = -0.5;
-	// 	const nv = 0;
-	// 	if ((a.path.o && b.path.o) && (!a.path.n || !b.path.n)) {
-	// 		return arrayCompare(a.path.o, b.path.o);
-	// 	}
-
-	// 	const av = a.path.n && a.path.o
-	// 		? (arrayCompare(a.path.n, a.path.o) < 0 ? (ap = nv, a.path.n) : (ap = ov, a.path.o))
-	// 		: (a.path.n ? (ap = nv, a.path.n) : (ap = ov, a.path.o));
-	// 	const bv = b.path.n && b.path.o
-	// 		? (arrayCompare(b.path.n, b.path.o) < 0 ? (bp = nv, b.path.n) : (bp = ov, b.path.o))
-	// 		: (b.path.n ? (bp = nv, b.path.n) : (bp = ov, b.path.o));
-	// 	// console.log("compare", [...av, ap], [...bv, bp], arrayCompare([...av, ap], [...bv, bp]));
-	// 	const result = arrayCompare(av, bv);
-	// 	if (result === 0) {
-	// 		return ap < bp ? -1 : 1;
-	// 	}
-	// 	return result;
-	// })
-	// .reduce((result, pair, idx, array) => {
-	// 	console.log("arr", array);
-	// 	if (pair.path.n) {
-	// 		pair.path.n[pair.path.n.length - 1] += getShift(shifts, pair.path.o || pair.path.n);
-	// 	}
-	// 	if (pair.path.o) {
-	// 		addShift(shifts, pair.path.o, 1);
-	// 	}
-	// 	if (pair.path.n) {
-	// 		addShift(shifts, pair.path.n, -1);
-	// 	}
-
-	// 	result.push(pair);
-	// 	return result;
-	// }, []);
-
-	// .sort((a, b) => {
-
-	// 	// const av = a.path.n && a.path.o ? (arrayCompare(a.path.n, a.path.o) < 0 ? a.path.n : a.path.o) : (a.path.n ? a.path.n : a.path.o);
-	// 	// const bv = b.path.n && b.path.o ? (arrayCompare(b.path.n, b.path.o) < 0 ? b.path.n : b.path.o) : (b.path.n ? b.path.n : b.path.o);
-	// 	// return arrayCompare(av, bv);
-	// 	if (a.path.n && b.path.n) {
-	// 		return arrayCompare(a.path.n, b.path.n);
-	// 	}
-	// 	return -1;
-	// });
+		i++;
+	}
 
 	return {
-		diff: [].concat(moveOld, moveNew)
+		diff: [].concat(_toConsumableArray(moveOld.sort(function (a, b) {
+			return arrayCompare(a.o, b.o);
+		})), _toConsumableArray(moveNew.sort(function (a, b) {
+			return arrayCompare(a.n, b.n);
+		})))
 	};
 }
 

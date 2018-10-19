@@ -171,15 +171,18 @@ export default function diff (n, o) {
 	const nshifts = {};
 	const oshifts = {};
 
-
 	// 1 === accordance map
 	diffOne("n", [null, null, n], pairs);
 	diffOne("o", [null, null, o], pairs);
-	console.log("pairs", pairs);
+	// console.log("pairs", pairs);
 	// 2 === shift map
 	const pairsKeys = Object.keys(pairs);
+	let i;
+	const pairKeysLength = pairsKeys.length;
 
-	pairsKeys.forEach(key => {
+	i = 0;
+	while (i < pairKeysLength) {
+		const key = pairsKeys[i];
 		const pair = pairs[key];
 		let newParent = false;
 		if (pair.o && pair.n) {
@@ -193,13 +196,16 @@ export default function diff (n, o) {
 		if ((pair.n && !pair.o) || newParent) {
 			addShift(nshifts, pair.n.path, -1);
 		}
-		// console.log("shifts", JSON.stringify(shifts));
-	});
+		i++;
+	}
+	// 3 === diff
+
 	const moveOld = [];
 	const moveNew = [];
-	console.log("nshifts", JSON.stringify(nshifts));
-	console.log("oshifts", JSON.stringify(oshifts));
-	pairsKeys.forEach(key => {
+
+	i = 0;
+	while (i < pairKeysLength) {
+		const key = pairsKeys[i];
 		const pair = pairs[key];
 		let npath;
 		let opath;
@@ -230,6 +236,9 @@ export default function diff (n, o) {
 				if (modify.length) {
 					item.modify = modify;
 				}
+				if (pair.o.content !== pair.n.content) {
+					item.content = {o: pair.o.content, n: pair.n.content};
+				}
 				moveOld.push(item);
 				moveNew.push({act: "paste", n: npath, o: opath, pair});
 			}
@@ -238,7 +247,10 @@ export default function diff (n, o) {
 				if (modify.length) {
 					item.modify = modify;
 				}
-				moveNew.push(item);
+				if (pair.o.content !== pair.n.content) {
+					item.content = {o: pair.o.content, n: pair.n.content};
+				}
+				moveOld.push(item);
 			}
 
 		}
@@ -250,100 +262,18 @@ export default function diff (n, o) {
 			if (modify.length) {
 				item.modify = modify;
 			}
+			if (pair.n.content) {
+				item.content = {n: pair.n.content};
+			}
 			moveNew.push(item);
 		}
-		// check for changes
-	});
-
-	// const result = Object.keys(pairs).map(key => {
-	// 	const pair = pairs[key];
-	// 	let nparams;
-	// 	let oparams;
-	// 	let ncontent;
-	// 	let ocontent;
-	// 	pair.path = {};
-	// 	pair.fullPath = {};
-	// 	if (pair.n) {
-	// 		nparams = pair.n.params;
-	// 		ncontent = pair.n.content;
-	// 		pair.path.n = pair.n.path;
-	// 		pair.fullPath.n = pair.n.fullPath;
-	// 		delete pair.n;
-	// 	}
-	// 	if (pair.o) {
-	// 		oparams = pair.o.params;
-	// 		ocontent = pair.o.content;
-	// 		pair.path.o = pair.o.path;
-	// 		pair.fullPath.o = pair.o.fullPath;
-	// 		delete pair.o;
-	// 	}
-	// 	if (nparams || oparams) {
-	// 		pair.params = diffObj(nparams, oparams, 2);
-	// 	}
-	// 	if (ncontent !== ocontent) {
-	// 		pair.content = {
-	// 			o: ocontent,
-	// 			n: ncontent,
-	// 		};
-	// 	}
-
-
-	// 	return pair;
-	// });
-
-	// .sort((a, b) => {
-	// 	let ap = 0;
-	// 	let bp = 0;
-	// 	const ov = -0.5;
-	// 	const nv = 0;
-	// 	if ((a.path.o && b.path.o) && (!a.path.n || !b.path.n)) {
-	// 		return arrayCompare(a.path.o, b.path.o);
-	// 	}
-
-	// 	const av = a.path.n && a.path.o
-	// 		? (arrayCompare(a.path.n, a.path.o) < 0 ? (ap = nv, a.path.n) : (ap = ov, a.path.o))
-	// 		: (a.path.n ? (ap = nv, a.path.n) : (ap = ov, a.path.o));
-	// 	const bv = b.path.n && b.path.o
-	// 		? (arrayCompare(b.path.n, b.path.o) < 0 ? (bp = nv, b.path.n) : (bp = ov, b.path.o))
-	// 		: (b.path.n ? (bp = nv, b.path.n) : (bp = ov, b.path.o));
-	// 	// console.log("compare", [...av, ap], [...bv, bp], arrayCompare([...av, ap], [...bv, bp]));
-	// 	const result = arrayCompare(av, bv);
-	// 	if (result === 0) {
-	// 		return ap < bp ? -1 : 1;
-	// 	}
-	// 	return result;
-	// })
-	// .reduce((result, pair, idx, array) => {
-	// 	console.log("arr", array);
-	// 	if (pair.path.n) {
-	// 		pair.path.n[pair.path.n.length - 1] += getShift(shifts, pair.path.o || pair.path.n);
-	// 	}
-	// 	if (pair.path.o) {
-	// 		addShift(shifts, pair.path.o, 1);
-	// 	}
-	// 	if (pair.path.n) {
-	// 		addShift(shifts, pair.path.n, -1);
-	// 	}
-
-	// 	result.push(pair);
-	// 	return result;
-	// }, []);
-
-	// .sort((a, b) => {
-
-	// 	// const av = a.path.n && a.path.o ? (arrayCompare(a.path.n, a.path.o) < 0 ? a.path.n : a.path.o) : (a.path.n ? a.path.n : a.path.o);
-	// 	// const bv = b.path.n && b.path.o ? (arrayCompare(b.path.n, b.path.o) < 0 ? b.path.n : b.path.o) : (b.path.n ? b.path.n : b.path.o);
-	// 	// return arrayCompare(av, bv);
-	// 	if (a.path.n && b.path.n) {
-	// 		return arrayCompare(a.path.n, b.path.n);
-	// 	}
-	// 	return -1;
-	// });
+		i++;
+	}
 
 	return {
 		diff: [
-			...moveOld,
-			...moveNew,
+			...moveOld.sort((a, b) => arrayCompare(a.o, b.o)),
+			...moveNew.sort((a, b) => arrayCompare(a.n, b.n)),
 		],
 	};
 }
