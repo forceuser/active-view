@@ -1,40 +1,26 @@
 /* global __dirname */
 const path = require("path");
+const merge = require("webpack-merge");
+const baseConfig = require("./base.config.js");
+const webpack = require("webpack");
+const isWSL = require("is-wsl");
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
-module.exports = {
-	entry: [
+module.exports = (env = {}) => {
+	const result = merge(baseConfig(env), {
+		mode: "development",
+	});
+	result.target = "node";
+	result.entry = [
+		"@babel/polyfill",
 		path.resolve(__dirname, "../test/index.js")
-	],
-	output: {
+	];
+	result.output = {
 		path: path.resolve(__dirname, "../test/build"),
 		filename: "index.js"
-	},
-	node: {
-		fs: "empty"
-	},
-	devtool: "source-map",
-	module: {
-		rules: [{
-			test: /\.js$/,
-			exclude: /(node_modules)/,
-			use: [{
-				loader: "babel-loader",
-				options: {
-					presets: [
-						["es2015", {
-							modules: false
-						}]
-					],
-					plugins: [
-						["istanbul", {
-							"exclude": [
-								"test/**/*"
-							]
-						}]
-					]
-				}
-			}]
-		}]
-	},
-	plugins: []
+	};
+
+	// result.plugins.push(new webpack.optimize.MinChunkSizePlugin({minChunkSize: 100000}));
+
+	return result;
 };

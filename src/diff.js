@@ -1,5 +1,4 @@
-import {VDOMN} from "./const";
-class KeyGen {
+export class KeyGen {
 	constructor () {
 		const storage = {};
 		return (key, type) => {
@@ -30,7 +29,7 @@ function serialize (val) {
 	return JSON.stringify(val);
 }
 
-function diffObj (n, o, deep, path = [], result = []) {
+export function diffObj (o, n, deep, path = [], result = []) {
 	const np = isPropObj(n);
 	const op = isPropObj(o);
 	const upd = {};
@@ -47,7 +46,7 @@ function diffObj (n, o, deep, path = [], result = []) {
 		while (i < nk.length) {
 			const key = nk[i];
 			upd[key] = true;
-			diffObj(n[key], o ? o[key] : undefined, deep, [...path, key], result);
+			diffObj(o ? o[key] : undefined, n[key], deep, [...path, key], result);
 			i++;
 		}
 	}
@@ -57,7 +56,7 @@ function diffObj (n, o, deep, path = [], result = []) {
 		while (i < ok.length) {
 			const key = ok[i];
 			if (!upd[key]) {
-				diffObj(undefined, o[key], deep, [...path, key], result);
+				diffObj(o[key], undefined, deep, [...path, key], result);
 			}
 			i++;
 		}
@@ -65,97 +64,197 @@ function diffObj (n, o, deep, path = [], result = []) {
 	return result;
 }
 
-function diffOne (branch = "d", parentVNode, pairs = {}, path = [], keyPath = [], fullKeyPath = []) {
-	const parentContent = !parentVNode || !Array.isArray(parentVNode[VDOMN.content]) ? null : parentVNode[VDOMN.content];
-	let idx;
-	let length;
-	if (parentContent) {
-		const keyGen = new KeyGen();
+function find (group, i) {
+	let s = 0;
+	let e = group.length - 1;
+	while (e - s > 1) {
+		const h = Math.floor(s + ((e - s) / 2));
+		if (group[h] > i) {
+			e = h;
+		}
+		else {
+			s = h;
+		}
+	}
+	return e;
+}
+
+function diffOne (listOld, listNew, settings, globalData) {
+	const pairs = {};
+	const pairsChilds = {};
+	const pairsNew = [];
+	const pairsRemove = [];
+	let list;
+	list = listNew;
+	if (list && list.length) {
+		let idx;
+		const length = list.length;
+		const keyGen = settings.initKeygen();
 		idx = 0;
-		length = parentContent.length;
+		let key;
+		let vnodePrev;
 		while (idx < length) {
-			const vnode = parentContent[idx];
-			const type = vnode[VDOMN.type];
-			const content = vnode[VDOMN.content];
-			const params = vnode[VDOMN.params] || {};
-			const key = keyGen(params.key, type);
-			const isAbs = isAbsKey(params.key);
-			const _path = [...path, idx];
-			const _keyPath = isAbs ? [key] : [...keyPath, key];
-			const abs = _keyPath.join("/");
-			let pair;
-			if (pairs[abs]) {
-				pair = pairs[abs];
-			}
-			else {
-				pair = {};
-				pairs[abs] = pair;
+			const vnode = settings.inputAdapter ? settings.inputAdapter(list[idx]) : list[idx];
+			key = keyGen(vnode.key, vnode.type);
+			const pair = {move: true, key};
+			pairs[key] = pair;
+
+			if (Array.isArray(vnode.content)) {
+				pairsChilds[key] = vnode.content;
 			}
 
-			pair.key = params.key;
-			pair[branch] = {path: _path, parentPath: keyPath.join("/"), params, content: getContent(content)};
-			diffOne(branch, vnode, pairs, _path, _keyPath);
+			pair.n = {idx, params: vnode.params, content: getContent(vnode.content), vnode, vnodePrev};
+			pairsNew.push(pair);
+
+			vnodePrev = vnode;
 			idx++;
 		}
 	}
+	list = listOld;
+	if (list && list.length) {
+		let idx;
+		const length = list.length;
+		const keyGen = settings.initKeygen();
+		idx = 0;
+		const groups = [];
+		let maxlength = 0;
+		let maxlengthidx;
+		let vnodePrev;
+		while (idx < length) {
+			const vnode = settings.inputAdapter ? settings.inputAdapter(list[idx]) : list[idx];
+			const key = keyGen(vnode.key, vnode.type);
+			let pair = pairs[key];
+			if (!pair) {
+				pair = {move: false, key};
+				pairs[key] = pair;
+				pairsRemove.push(pair);
+				pair.o = {idx, vnode, vnodePrev};
+			}
+			else {
+				let added = false;
+				const l = groups.length;
+				const i = pair.n.idx;
+				for (let gi = 0; gi < l; gi++) {
+					const group = groups[gi];
+					let length = group.length;
+					if (group[length - 1] < i) {
+						group.push(i);
+						added = true;
+						length++;
+					}
+					else if (group[0] < i) {
+						const newgroup = group.slice(0, find(group, i));
+						newgroup.push(i);
+						added = true;
+						length = newgroup.length;
+						groups.push(newgroup);
+					}
+
+					if (length > maxlength) {
+						maxlength = length;
+						maxlengthidx = gi;
+					}
+				}
+				if (!added) {
+					groups.push([i]);
+					if (maxlength === 0) {
+						maxlength = 1;
+						maxlengthidx = 0;
+					}
+				}
+
+				pair.o = {idx, params: vnode.params, content: getContent(vnode.content), vnode, vnodePrev};
+			}
+
+			const childsOld = Array.isArray(vnode.content) ? vnode.content : null;
+			const childsNew = pairsChilds[key];
+			if (settings.deep && pair.n && (childsNew || childsOld)) {
+				pair.childs = diffOne(childsOld, childsNew, settings, globalData);
+			}
+			vnodePrev = vnode;
+			idx++;
+		}
+
+		if (maxlengthidx != null) {
+			groups[maxlengthidx].forEach(i => {
+				pairsNew[i].move = false;
+			});
+		}
+	}
+
+	let result = [
+		...pairsRemove,
+		...pairsNew,
+	];
+	if (settings.outputAdapter) {
+		result = result.map((i, idx) => settings.outputAdapter(i, idx, globalData)).filter(i => i != null);
+	}
+	return result;
 }
 
-function arrayCompare (a, b) {
-	const length = Math.max(a.length, b.length);
-	let i = 0;
-	while (i < length) {
-		const av = a[i] != null ? a[i] : -1;
-		const bv = b[i] != null ? b[i] : -1;
-		if (av > bv) {
-			return 1;
+
+function checkForAbs (branch, item, pair, globalData) {
+	if (isAbsKey(item.vnode.key)) {
+		let absItem = globalData[item.key];
+		if (absItem) {
+			absItem[branch] = item;
+			item.absItem = absItem;
+			const diff = diffObj(absItem.o.vnode.params, absItem.n.vnode.params);
+			if (diff.length) {
+				absItem.diff = diff;
+			}
 		}
-		else if (av < bv) {
-			return -1;
+		else {
+			absItem = {};
+			absItem[branch] = item;
+			item.absItem = absItem;
+			globalData[item.key] = absItem;
 		}
-		i++;
 	}
-	return 0;
 }
 
-const calcShift = (lvl, idx) => {
-	let sum = 0;
-	for (let i = 0; i < idx; i++) {
-		sum += lvl[i] ? lvl[i].val : 0;
-	}
-	return sum;
-};
+const defaultSettings = {
+	deep: true,
+	initKeygen: () => new KeyGen(),
+	outputAdapter: (pair, idx, globalData) => {
+		let item;
+		let diff;
+		if (pair.o && pair.n) {
+			diff = diffObj(pair.o.params, pair.n.params);
+			if (!pair.move && !diff.length && (!pair.childs || !pair.childs.length)) {
+				return null;
+			}
+			item = {act: 0, move: pair.move, key: pair.key, vnode: pair.n.vnode};
+		}
+		else if (pair.n) {
+			item = {act: 1, key: pair.key, vnode: pair.n.vnode};
+			checkForAbs("n", item, pair, globalData);
+		}
+		else if (pair.o) {
+			item = {act: -1, key: pair.key, vnode: pair.o.vnode};
+			checkForAbs("o", item, pair, globalData);
+		}
 
-const getShift = (shifts, path) => {
-	let lvl = shifts;
-	const l = path.length;
-	for (let i = 0; i < l; i++) {
-		const idx = path[i];
-		if (i < l - 1) {
-			lvl = lvl[idx].ch;
+		if (pair.n && pair.childs && pair.childs.length) {
+			item.childs = pair.childs;
 		}
-		else {
-			return calcShift(lvl, idx);
+		if (diff && diff.length) {
+			item.diff = diff;
 		}
-	}
+		return item;
+	},
+	inputAdapter: (vnode) => {
+		const type = vnode[0];
+		const params = vnode[1] || {};
+		const content = vnode[2];
+		return {
+			type,
+			content,
+			params,
+			key: params.key,
+		};
+	},
 };
-
-const addShift = (shifts, path, val) => {
-	let lvl = shifts;
-	const l = path.length;
-	for (let i = 0; i < l; i++) {
-		const idx = path[i];
-		if (!lvl[idx]) {
-			lvl[idx] = {ch: {}, val: 0};
-		}
-		if (i < l - 1) {
-			lvl = lvl[idx].ch;
-		}
-		else {
-			lvl[idx].val += val;
-		}
-	}
-};
-
 
 /**
  * Производит сравнение виртуальных DOM деревьев
@@ -165,115 +264,8 @@ const addShift = (shifts, path, val) => {
  * @return {DiffResult} результат сравнения, в виде дерева операций которые нужно произвести над старым деревом чтобы получить новое
  */
 
-export default function diff (n, o) {
-	// Wrap vnodes to consume
-	const pairs = {};
-	const nshifts = {};
-	const oshifts = {};
-
-	// 1 === accordance map
-	diffOne("n", [null, null, n], pairs);
-	diffOne("o", [null, null, o], pairs);
-	// console.log("pairs", pairs);
-	// 2 === shift map
-	const pairsKeys = Object.keys(pairs);
-	let i;
-	const pairKeysLength = pairsKeys.length;
-
-	i = 0;
-	while (i < pairKeysLength) {
-		const key = pairsKeys[i];
-		const pair = pairs[key];
-		let newParent = false;
-		if (pair.o && pair.n) {
-			newParent = pair.n.parentPath !== pair.o.parentPath;
-		}
-
-		if ((pair.o && !pair.n) || newParent) {
-			addShift(oshifts, pair.o.path, 1);
-		}
-
-		if ((pair.n && !pair.o) || newParent) {
-			addShift(nshifts, pair.n.path, -1);
-		}
-		i++;
-	}
-	// 3 === diff
-
-	const moveOld = [];
-	const moveNew = [];
-
-	i = 0;
-	while (i < pairKeysLength) {
-		const key = pairsKeys[i];
-		const pair = pairs[key];
-		let npath;
-		let opath;
-		let nparams;
-		let oparams;
-		if (pair.n) {
-			npath = pair.n.path;
-			nparams = pair.n.params;
-		}
-		if (pair.o) {
-			opath = pair.o.path;
-			oparams = pair.o.params;
-		}
-		const modify = diffObj(nparams, oparams, 2);
-		if (npath && opath) {
-			let ni = 0;
-			let oi = 0;
-			const newParent = pair.n.parentPath !== pair.o.parentPath;
-			if (!newParent) {
-				addShift(oshifts, opath, 1);
-				addShift(nshifts, npath, -1);
-				ni = npath[npath.length - 1] + getShift(oshifts, opath) + getShift(nshifts, npath);
-				oi = opath[opath.length - 1] ;
-			}
-
-			if (newParent || ni !== oi) { // move (cut, paste)
-				const item = {act: "cut", o: opath, pair};
-				if (modify.length) {
-					item.modify = modify;
-				}
-				if (pair.o.content !== pair.n.content) {
-					item.content = {o: pair.o.content, n: pair.n.content};
-				}
-				moveOld.push(item);
-				moveNew.push({act: "paste", n: npath, o: opath, pair});
-			}
-			else { // else nomove
-				const item = {n: npath, o: opath, pair};
-				if (modify.length) {
-					item.modify = modify;
-				}
-				if (pair.o.content !== pair.n.content) {
-					item.content = {o: pair.o.content, n: pair.n.content};
-				}
-				moveOld.push(item);
-			}
-
-		}
-		else if (opath) { // delete
-			moveOld.push({act: "del", o: opath, pair});
-		}
-		else { // if (npath) // add
-			const item = {act: "add", n: npath, pair};
-			if (modify.length) {
-				item.modify = modify;
-			}
-			if (pair.n.content) {
-				item.content = {n: pair.n.content};
-			}
-			moveNew.push(item);
-		}
-		i++;
-	}
-
-	return {
-		diff: [
-			...moveOld.sort((a, b) => arrayCompare(a.o, b.o)),
-			...moveNew.sort((a, b) => arrayCompare(a.n, b.n)),
-		],
-	};
+export default function diff (o, n, settings) {
+	settings = Object.assign({}, defaultSettings, settings);
+	const globalData = settings.initGlobalData ? settings.initGlobalData() : {};
+	return diffOne(o, n, settings, globalData);
 }

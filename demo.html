@@ -2,74 +2,35 @@
 <html>
 	<head>
 		<title>active-view demo</title>
-		<script src="./dist/active-view.js"></script>
+		<!-- <script src="./dist/active-view.js"></script> -->
 		<script src="//cdn.rawgit.com/forceuser/sqnc/1.0.9/dist/sqnc.min.js">
 		</script>
 	</head>
 	<body>
-		<script>
-			// const oldNode = ["div", {}, [
-			// 	...sqnc(1, 11).map(key => ["span", {key, a: 1, b: 2, attr: {x: 1, y: 5, obj: {aa: 1}}, prop: {d: 1}}, `item${key}`])
-			// ]];
-
-			// const newNode = ["div", {}, [
-			// 	...sqnc(6, 2).filter(i => i !== 3).map(key => ["span", {key, a:5, c: 3, attr: {x: 2, z: 0, obj: {aa: 2}}, style: {color: "white"}}, `item${key}xx`]),
-			// 	["span", {key: 12}, `item12`]
-			// ]];
-			// const oldNode = ["div", {}, [
-			// 	["span", {key: 1}, "item1"],
-			// 	["span", {key: 2}, "item2"],
-			// 	["span", {key: 3}, "item3"],
-			// 	["span", {key: 4}, "item4"],
-			// 	["span", {key: 5}, "item5"],
-			// 	["span", {key: 6}, "item6"],
-			// 	["span", {key: 7}, "item7"],
-			// 	["span", {key: 8}, "item8"],
-			// 	["span", {key: 9}, "item9"],
-			// 	["span", {key: 10}, "item10"],
-			// 	["span", {key: 11}, "item11"],
-			// ]];
-
-			// const newNode = ["div", {}, [
-			// 	["span", {key: 1}, "item1"],
-			// 	["span", {key: 2}, "item2"],
-			// 	// ["span", {key: 4}, "item4"],
-			// 	["span", {key: 5}, "item5"],
-			// 	["span", {key: 13}, "item13"],
-			// 	["span", {key: 7}, "item7"],
-			// 	["span", {key: 3}, "item3"],
-			// 	["span", {key: 6}, "item6"],
-			// 	["span", {key: 8}, "item8"],
-			// 	["span", {key: 9}, "item9"],
-			// 	["span", {key: 10}, "item10"],
-			// 	["span", {key: 11}, "item11"],
-			// ]];
-
-			const oldNode = [
-				["section", {key: "#haha"}, "someContent"],
-				["div", {}, [
-					["span", {key: 1}, "item1"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 3}, "item3"],
-					["span", {key: 4}, "item4"],
-				]]
-			];
-
-			const newNode = [
-				["div", {}, [
-					["span", {key: 3}, "item3"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 4}, "item4"],
-					["span", {key: 5}, "item5"],
-					["section", {key: "#haha"}, "someOtherContent"],
-				]]
-			];
-
-
-			console.log("oldNode", oldNode);
-			console.log("newNode", newNode);
-			console.log(activeView.diff(newNode, oldNode));
-
+		<script type="module">
+			import activeView from "./src/index.js";
+			console.log("example1");
+			console.log(activeView.diff(
+				[
+					["section", {key: "#haha", ppp: "someText"}, "someContent"],
+					["div", {}, [
+						["span", {key: 1}, "item1"],
+						["span", {key: 2}, "item2"],
+						["span", {key: 3, x: 1}, "item3"],
+						["span", {key: 4}, "item4"],
+					]]
+				],
+				[
+					["div", {}, [
+						["span", {key: 3, x: 2}, "item3"],
+						["span", {key: 2}, "item2"],
+						["span", {key: 4}, "item4"],
+						["span", {key: 5}, "item5"],
+						["section", {key: "#haha"}, "someOtherContent"],
+					]]
+				]
+			));
+			console.log("example2");
 			console.log(activeView.diff(
 				[
 					["span", {key: 3}, "item3"],
@@ -85,7 +46,7 @@
 					["span", {key: 4}, "item4"],
 				],
 			));
-
+			console.log("example3");
 			console.log(activeView.diff(
 				[
 					["span", {key: 3}, "item3"],
@@ -99,6 +60,7 @@
 			));
 
 			// example with bad diff optimization
+			console.log("example with bad diff optimization: 1")
 			console.log(activeView.diff(
 				[
 					["span", {key: 2}, "item2"],
@@ -115,6 +77,25 @@
 					["span", {key: 5}, "item5"],
 				],
 			));
+
+			console.log("example with bad diff optimization: 2")
+			console.log(activeView.diff(
+				[
+					["span", {key: 1}, "item1"],
+					["span", {key: 2}, "item2"],
+					["span", {key: 3}, "item3"],
+					["span", {key: 4}, "item4"],
+					["span", {key: 5}, "item5"],
+				],
+				[
+					["span", {key: 2}, "item2"],
+					["span", {key: 3}, "item3"],
+					["span", {key: 4}, "item4"],
+					["span", {key: 5}, "item5"],
+					["span", {key: 1}, "item1"],
+				],
+			));
+
 
 			// 1. переделать все на while цыклы
 			// 2. сделать два направления движения diff цикла и отметки на обработанных нодах
