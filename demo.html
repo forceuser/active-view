@@ -8,97 +8,136 @@
 	</head>
 	<body>
 		<script type="module">
-			import activeView from "./src/index.js";
-			console.log("example1");
-			console.log(activeView.diff(
-				[
-					["section", {key: "#haha", ppp: "someText"}, "someContent"],
-					["div", {}, [
-						["span", {key: 1}, "item1"],
-						["span", {key: 2}, "item2"],
-						["span", {key: 3, x: 1}, "item3"],
-						["span", {key: 4}, "item4"],
-					]]
-				],
-				[
-					["div", {}, [
-						["span", {key: 3, x: 2}, "item3"],
-						["span", {key: 2}, "item2"],
-						["span", {key: 4}, "item4"],
-						["span", {key: 5}, "item5"],
-						["section", {key: "#haha"}, "someOtherContent"],
-					]]
-				]
-			));
-			console.log("example2");
-			console.log(activeView.diff(
-				[
-					["span", {key: 3}, "item3"],
+			import activeView from "./src/index.mjs";
+			console.log("activeView", activeView);
+			let state = [];
+			let newState = [
+				["div", {}, [
+					["span", {key: 3, x: 2}, "item3"],
 					["span", {key: 2}, "item2"],
 					["span", {key: 4}, "item4"],
 					["span", {key: 5}, "item5"],
-					["img", {key: "#haha"}],
-				],
-				[
+					["section", {key: "#haha"}, "someOtherContent"],
+				]]
+			];
+			let diffData = activeView.diff(state, newState);
+			activeView.patch(diffData, document.body);
+			state = newState;
+			newState = [
+				["section", {key: "#haha", ppp: "someText"}, "someContent"],
+				["div", {}, [
 					["span", {key: 1}, "item1"],
 					["span", {key: 2}, "item2"],
-					["span", {key: 3}, "item3"],
+					["span", {key: 3, x: 1}, "item3"],
 					["span", {key: 4}, "item4"],
-				],
-			));
-			console.log("example3");
-			console.log(activeView.diff(
-				[
-					["span", {key: 3}, "item3"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 4}, "item4"],
-					["span", {key: 5}, "item5"],
-					["img", {key: "#haha"}],
-				],
-				[
-				],
-			));
+				]]
+			];
+			diffData = activeView.diff(state, newState);
+			activeView.patch(diffData, document.body);
 
-			// example with bad diff optimization
-			console.log("example with bad diff optimization: 1")
-			console.log(activeView.diff(
-				[
+			state = newState;
+			newState = [
+				["div", {}, [
+					["span", {key: 3, x: 2}, "item3"],
 					["span", {key: 2}, "item2"],
-					["span", {key: 3}, "item3"],
+					["section", {key: "#haha"}, "someOtherContent"],
 					["span", {key: 4}, "item4"],
+					[null, {key: 9}, "text node"],
 					["span", {key: 5}, "item5"],
-					["span", {key: 1}, "item1"],
-				],
-				[
-					["span", {key: 1}, "item1"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 3}, "item3"],
-					["span", {key: 4}, "item4"],
-					["span", {key: 5}, "item5"],
-				],
-			));
+				]]
+			];
+			diffData = activeView.diff(state, newState);
+			activeView.patch(diffData, document.body);
 
-			console.log("example with bad diff optimization: 2")
-			console.log(activeView.diff(
-				[
-					["span", {key: 1}, "item1"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 3}, "item3"],
-					["span", {key: 4}, "item4"],
-					["span", {key: 5}, "item5"],
-				],
-				[
-					["span", {key: 2}, "item2"],
-					["span", {key: 3}, "item3"],
-					["span", {key: 4}, "item4"],
-					["span", {key: 5}, "item5"],
-					["span", {key: 1}, "item1"],
-				],
-			));
+			console.log("END", diffData	);
 
+			// console.log("example1");
+			// console.log(activeView.diff(
+			// 	[
+			// 		["section", {key: "#haha", ppp: "someText"}, "someContent"],
+			// 		["div", {}, [
+			// 			["span", {key: 1}, "item1"],
+			// 			["span", {key: 2}, "item2"],
+			// 			["span", {key: 3, x: 1}, "item3"],
+			// 			["span", {key: 4}, "item4"],
+			// 		]]
+			// 	],
+			// 	[
+			// 		["div", {}, [
+			// 			["span", {key: 3, x: 2}, "item3"],
+			// 			["span", {key: 2}, "item2"],
+			// 			["span", {key: 4}, "item4"],
+			// 			["span", {key: 5}, "item5"],
+			// 			["section", {key: "#haha"}, "someOtherContent"],
+			// 		]]
+			// 	]
+			// ));
 
-			// 1. переделать все на while цыклы
-			// 2. сделать два направления движения diff цикла и отметки на обработанных нодах
+			// console.log("example2");
+			// console.log(activeView.diff(
+			// 	[
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 4}, "item4"],
+			// 		["span", {key: 5}, "item5"],
+			// 		["img", {key: "#haha"}],
+			// 	],
+			// 	[
+			// 		["span", {key: 1}, "item1"],
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 4}, "item4"],
+			// 	],
+			// ));
+			// console.log("example3");
+			// console.log(activeView.diff(
+			// 	[
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 4}, "item4"],
+			// 		["span", {key: 5}, "item5"],
+			// 		["img", {key: "#haha"}],
+			// 	],
+			// 	[
+			// 	],
+			// ));
+
+			// // example with bad diff optimization
+			// console.log("example with bad diff optimization: 1")
+			// console.log(activeView.diff(
+			// 	[
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 4}, "item4"],
+			// 		["span", {key: 5}, "item5"],
+			// 		["span", {key: 1}, "item1"],
+			// 	],
+			// 	[
+			// 		["span", {key: 1}, "item1"],
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 4}, "item4"],
+			// 		["span", {key: 5}, "item5"],
+			// 	],
+			// ));
+
+			// console.log("example with bad diff optimization: 2")
+			// console.log(activeView.diff(
+			// 	[
+			// 		["span", {key: 1}, "item1"],
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 4}, "item4"],
+			// 		["span", {key: 5}, "item5"],
+			// 	],
+			// 	[
+			// 		["span", {key: 2}, "item2"],
+			// 		["span", {key: 3}, "item3"],
+			// 		["span", {key: 4}, "item4"],
+			// 		["span", {key: 5}, "item5"],
+			// 		["span", {key: 1}, "item1"],
+			// 	],
+			// ));
 		</script>
 	</body>
 </html>

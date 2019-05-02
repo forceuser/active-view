@@ -11,7 +11,7 @@ const alias = Object.keys(ma).reduce((acc, key) => (acc[key] = path.resolve(__di
 module.exports = (env = {}) => {
 	console.log("env", env);
 	return ({
-		entry: "./src/index.js",
+		entry: "./src/index.mjs",
 		output: {
 			path: path.resolve(__dirname, "../dist"),
 			filename: `active-view${process.env.BROWSERSLIST_ENV === "modern" ? ".modern" : ""}.js`,

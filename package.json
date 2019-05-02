@@ -1,6 +1,6 @@
 {
 	"name": "active-view",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "Small and modular virtual DOM library",
 	"main": "dist/active-view.js",
 	"module": "src/index.js",
@@ -9,6 +9,7 @@
 	},
 	"scripts": {
 		"init": "rm -rf ./node-modules/ > /dev/null && npm i",
+		"serve": "npx serve",
 		"update": "npx npm-check-updates -u && npm install && npm update --dev && npm audit fix",
 		"test": "eslint . && cross-env BROWSERSLIST_ENV=modern NODE_ENV=test BABEL_ENV=test node ./build-utils/run-esm.js -s ./test/index.js | faucet && nyc report",
 		"test-webpack": "eslint . && cross-env BROWSERSLIST_ENV=modern NODE_ENV=test BABEL_ENV=test webpack --config ./webpack/test.config.js && nyc --reporter=lcov node ./test/build/index.js | faucet && nyc report",

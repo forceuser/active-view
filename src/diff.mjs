@@ -4,6 +4,9 @@ export class KeyGen {
 		return (key, type) => {
 			type = type || "-notype";
 			if (key) {
+				if (Array.isArray(key)) {
+					key = key.join("|~|");
+				}
 				return `${type}#${key}`;
 			}
 			storage[type] = storage[type] || 0;
@@ -14,11 +17,7 @@ export class KeyGen {
 }
 
 function isAbsKey (val) {
-	return (val || "").toString().startsWith("#");
-}
-
-function getContent (content) {
-	return content !== null && !Array.isArray(content) ? content : null;
+	return typeof val === "string" ? (val || "").toString().startsWith("#") : false;
 }
 
 function isPropObj (val) {
@@ -81,8 +80,8 @@ function find (group, i) {
 
 function diffOne (listOld, listNew, settings, globalData) {
 	const pairs = {};
-	const pairsChilds = {};
-	const pairsNew = [];
+	const pairsChildren = {};
+	const pairsUpdate = [];
 	const pairsRemove = [];
 	let list;
 	list = listNew;
@@ -99,12 +98,12 @@ function diffOne (listOld, listNew, settings, globalData) {
 			const pair = {move: true, key};
 			pairs[key] = pair;
 
-			if (Array.isArray(vnode.content)) {
-				pairsChilds[key] = vnode.content;
+			if (vnode.children) {
+				pairsChildren[key] = vnode.children;
 			}
 
-			pair.n = {idx, params: vnode.params, content: getContent(vnode.content), vnode, vnodePrev};
-			pairsNew.push(pair);
+			pair.n = {idx, params: vnode.params, content: vnode.content, vnode, vnodePrev};
+			pairsUpdate.push(pair);
 
 			vnodePrev = vnode;
 			idx++;
@@ -131,6 +130,7 @@ function diffOne (listOld, listNew, settings, globalData) {
 				pair.o = {idx, vnode, vnodePrev};
 			}
 			else {
+				// find largest ordered group to minimize movement of dom nodes
 				let added = false;
 				const l = groups.length;
 				const i = pair.n.idx;
@@ -163,13 +163,13 @@ function diffOne (listOld, listNew, settings, globalData) {
 					}
 				}
 
-				pair.o = {idx, params: vnode.params, content: getContent(vnode.content), vnode, vnodePrev};
+				pair.o = {idx, params: vnode.params, content: vnode.content, vnode, vnodePrev};
 			}
 
-			const childsOld = Array.isArray(vnode.content) ? vnode.content : null;
-			const childsNew = pairsChilds[key];
-			if (settings.deep && pair.n && (childsNew || childsOld)) {
-				pair.childs = diffOne(childsOld, childsNew, settings, globalData);
+			const childrenOld = vnode.children;
+			const childrenNew = pairsChildren[key];
+			if (settings.deep && pair.n && (childrenNew || childrenOld)) {
+				pair.children = diffOne(childrenOld, childrenNew, settings, globalData);
 			}
 			vnodePrev = vnode;
 			idx++;
@@ -177,14 +177,19 @@ function diffOne (listOld, listNew, settings, globalData) {
 
 		if (maxlengthidx != null) {
 			groups[maxlengthidx].forEach(i => {
-				pairsNew[i].move = false;
+				pairsUpdate[i].move = false;
 			});
 		}
 	}
+	pairsUpdate.forEach(pair => {
+		if (!pair.o) {
+			pair.children = diffOne(null, pair.n.vnode.children, settings, globalData);
+		}
+	});
 
 	let result = [
 		...pairsRemove,
-		...pairsNew,
+		...pairsUpdate,
 	];
 	if (settings.outputAdapter) {
 		result = result.map((i, idx) => settings.outputAdapter(i, idx, globalData)).filter(i => i != null);
@@ -199,6 +204,7 @@ function checkForAbs (branch, item, pair, globalData) {
 		if (absItem) {
 			absItem[branch] = item;
 			item.absItem = absItem;
+			absItem.n.vnode.orig.node = absItem.o.vnode.orig.node;
 			const diff = diffObj(absItem.o.vnode.params, absItem.n.vnode.params);
 			if (diff.length) {
 				absItem.diff = diff;
@@ -221,22 +227,23 @@ const defaultSettings = {
 		let diff;
 		if (pair.o && pair.n) {
 			diff = diffObj(pair.o.params, pair.n.params);
-			if (!pair.move && !diff.length && (!pair.childs || !pair.childs.length)) {
+			pair.n.vnode.orig.node = pair.o.vnode.orig.node;
+			if (!pair.move && !diff.length && (!pair.children || !pair.children.length)) {
 				return null;
 			}
-			item = {act: 0, move: pair.move, key: pair.key, vnode: pair.n.vnode};
+			item = {act: 0, move: pair.move, key: pair.key, vnode: pair.n.vnode, vnodePrev: pair.n.vnodePrev};
 		}
 		else if (pair.n) {
-			item = {act: 1, key: pair.key, vnode: pair.n.vnode};
+			item = {act: 1, move: true, key: pair.key, vnode: pair.n.vnode, vnodePrev: pair.n.vnodePrev};
 			checkForAbs("n", item, pair, globalData);
 		}
 		else if (pair.o) {
-			item = {act: -1, key: pair.key, vnode: pair.o.vnode};
+			item = {act: -1, key: pair.key, vnode: pair.o.vnode, vnodePrev: pair.o.vnodePrev};
 			checkForAbs("o", item, pair, globalData);
 		}
 
-		if (pair.n && pair.childs && pair.childs.length) {
-			item.childs = pair.childs;
+		if (pair.n && pair.children && pair.children.length) {
+			item.children = pair.children;
 		}
 		if (diff && diff.length) {
 			item.diff = diff;
@@ -247,11 +254,14 @@ const defaultSettings = {
 		const type = vnode[0];
 		const params = vnode[1] || {};
 		const content = vnode[2];
+		const isChildren = Array.isArray(content);
 		return {
 			type,
-			content,
 			params,
+			children: isChildren ? content : null,
+			content: !isChildren ? content : null,
 			key: params.key,
+			orig: vnode,
 		};
 	},
 };
