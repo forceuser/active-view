@@ -6,50 +6,93 @@
 		<script src="//cdn.rawgit.com/forceuser/sqnc/1.0.9/dist/sqnc.min.js">
 		</script>
 	</head>
-	<body>
+	<body notreplaced xxd>
+		<script src="//cdn.jsdelivr.net/npm/active-data@2.0.2/dist/active-data.modern.js" integrity="sha512-BwaV5ohWZ138DzlOhOYvikstGTvoXhOuAcwKVoKX/3Kw+rFgi293Q6JiDaDixUdmuaSlQBSVifvlyr81UhYOQg==" crossorigin="anonymous">
+		</script>
+		<script src="//cdn.jsdelivr.net/npm/sqnc@3.0.3/dist/sqnc.js" integrity="sha512-7WcUsN0GQKB+Rl5XnPG/dq6XwPX3W23l7RmZa/yJm6RJ0yMthID4ZnxAOtni9KaRHCt+oVp5uXmP2lTHW5KngA==" crossorigin="anonymous">
+		</script>
 		<script type="module">
 			import activeView from "./src/index.mjs";
-			console.log("activeView", activeView);
-			let state = [];
-			let newState = [
-				["div", {}, [
-					["span", {key: 3, x: 2}, "item3"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 4}, "item4"],
-					["span", {key: 5}, "item5"],
-					["section", {key: "#haha"}, "someOtherContent"],
-				]]
-			];
-			let diffData = activeView.diff(state, newState);
-			activeView.patch(diffData, document.body);
-			state = newState;
-			newState = [
-				["section", {key: "#haha", ppp: "someText"}, "someContent"],
-				["div", {}, [
-					["span", {key: 1}, "item1"],
-					["span", {key: 2}, "item2"],
-					["span", {key: 3, x: 1}, "item3"],
-					["span", {key: 4}, "item4"],
-				]]
-			];
-			diffData = activeView.diff(state, newState);
-			activeView.patch(diffData, document.body);
+			const {observable, reaction} = activeData;
+			function adapter (vnode) {
+				const type = vnode[0];
+				const key = vnode[1];
+				const params = vnode[2] || {};
+				const content = vnode[3];
+				const isChildren = Array.isArray(content);
+				return {
+					type,
+					params,
+					children: isChildren ? content.map(adapter) : null,
+					content: !isChildren ? content : null,
+					key,
+					node: vnode.node,
+				};
+			}
 
-			state = newState;
-			newState = [
-				["div", {}, [
-					["span", {key: 3, x: 2}, "item3"],
-					["span", {key: 2}, "item2"],
-					["section", {key: "#haha"}, "someOtherContent"],
-					["span", {key: 4}, "item4"],
-					[null, {key: 9}, "text node"],
-					["span", {key: 5}, "item5"],
-				]]
-			];
-			diffData = activeView.diff(state, newState);
-			activeView.patch(diffData, document.body);
+			function createPatchFn (parent, replaceRoot = true) {
+				let state = [];
+				let initial = true;
+				return (newState) => {
+					newState = replaceRoot ? adapter(newState) : (newState || []).map(adapter);
+					console.log("newState", newState);
+					const diffData = activeView.diff(state, newState);
+					console.log("diffData", diffData);
+					activeView.patch(diffData, parent, {replaceRoot, initial});
+					initial = false;
+					state = newState;
+				};
+			}
 
-			console.log("END", diffData	);
+			const patch = createPatchFn(document.documentElement);
+			const data = observable({
+				title: "PERFECT TITLE",
+				items: sqnc(idx => `item${idx}`).toArray(10000),
+			})
+			window.data = data;
+			reaction(() => {
+				console.log("reaction");
+				patch(["html", null, null, [
+					["head", null, null, [
+						["title", null, null, data.title],
+					]],
+					["body", null, null, [
+						...data.items.map((item, idx) => ["div", `item${idx}`, null, item]),
+					]],
+				]]);
+			});
+
+			// const patch = createPatchFn(document.body, false);
+			// patch([
+			// 	["div", null, null, [
+			// 		["span", 3, {x: 2}, "item3"],
+			// 		["span", 2, null, "item2"],
+			// 		["span", 4, null, "item4"],
+			// 		["span", 5, null, "item5"],
+			// 		["section", "#haha", null, "someOtherContent"],
+			// 	]]
+			// ]);
+
+			// patch([
+			// 	["section", "#haha", {ppp: "someText"}, "someContent"],
+			// 	["div", null, null, [
+			// 		["span", 1, null, "item1"],
+			// 		["span", 2, null, "item2"],
+			// 		["span", 3, {x: 1}, "item3"],
+			// 		["span", 4, null, "item4"],
+			// 	]]
+			// ]);
+
+			// patch([
+			// 	["div", null, null, [
+			// 		["span", 3, {x: 2}, "item3"],
+			// 		["span", 2, null, "item2"],
+			// 		["section", "#haha", null, "someOtherContent"],
+			// 		["a", 4, null, "item4x"],
+			// 		[null, 9, null, "text node"],
+			// 		["span", 5, null, "item5"],
+			// 	]]
+			// ]);
 
 			// console.log("example1");
 			// console.log(activeView.diff(

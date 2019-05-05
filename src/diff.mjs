@@ -78,6 +78,63 @@ function find (group, i) {
 	return e;
 }
 
+function checkForAbs (branch, item, pair, globalData) {
+	if (isAbsKey(item.vnode.key)) {
+		let absItem = globalData[item.key];
+		if (absItem) {
+			absItem[branch] = item;
+			item.absItem = absItem;
+			absItem.n.vnode.node = absItem.o.vnode.node;
+			const diff = diffObj(absItem.o.vnode.params, absItem.n.vnode.params);
+			if (diff.length) {
+				absItem.diff = diff;
+			}
+		}
+		else {
+			absItem = {};
+			absItem[branch] = item;
+			item.absItem = absItem;
+			globalData[item.key] = absItem;
+		}
+	}
+}
+
+function outputAdapter (pair, idx, globalData) {
+	let item;
+	let diff;
+	if (pair.o && pair.n) {
+		diff = diffObj(pair.o.params, pair.n.params);
+		pair.n.vnode.node = pair.o.vnode.node;
+		const contentChanged = pair.n.content != pair.o.content;
+		if (!pair.move && !diff.length && (!pair.children || !pair.children.length) && !contentChanged) {
+			return null;
+		}
+		item = {act: 0, move: pair.move, key: pair.key, vnode: pair.n.vnode, vnodePrev: pair.n.vnodePrev};
+		if (contentChanged) {
+			item.content = pair.n.content;
+		}
+	}
+	else if (pair.n) {
+		item = {act: 1, move: true, key: pair.key, vnode: pair.n.vnode, vnodePrev: pair.n.vnodePrev};
+		if (pair.n.content != null) {
+			item.content = pair.n.content;
+		}
+		checkForAbs("n", item, pair, globalData);
+	}
+	else if (pair.o) {
+		item = {act: -1, key: pair.key, vnode: pair.o.vnode, vnodePrev: pair.o.vnodePrev};
+		checkForAbs("o", item, pair, globalData);
+	}
+
+	if (pair.n && pair.children && pair.children.length) {
+		item.children = pair.children;
+	}
+	if (diff && diff.length) {
+		item.diff = diff;
+	}
+	return item;
+}
+
 function diffOne (listOld, listNew, settings, globalData) {
 	const pairs = {};
 	const pairsChildren = {};
@@ -93,7 +150,7 @@ function diffOne (listOld, listNew, settings, globalData) {
 		let key;
 		let vnodePrev;
 		while (idx < length) {
-			const vnode = settings.inputAdapter ? settings.inputAdapter(list[idx]) : list[idx];
+			const vnode = list[idx];
 			key = keyGen(vnode.key, vnode.type);
 			const pair = {move: true, key};
 			pairs[key] = pair;
@@ -120,7 +177,7 @@ function diffOne (listOld, listNew, settings, globalData) {
 		let maxlengthidx;
 		let vnodePrev;
 		while (idx < length) {
-			const vnode = settings.inputAdapter ? settings.inputAdapter(list[idx]) : list[idx];
+			const vnode = list[idx];
 			const key = keyGen(vnode.key, vnode.type);
 			let pair = pairs[key];
 			if (!pair) {
@@ -187,83 +244,20 @@ function diffOne (listOld, listNew, settings, globalData) {
 		}
 	});
 
-	let result = [
+	return [
 		...pairsRemove,
 		...pairsUpdate,
-	];
-	if (settings.outputAdapter) {
-		result = result.map((i, idx) => settings.outputAdapter(i, idx, globalData)).filter(i => i != null);
-	}
-	return result;
+	]
+		.map((pair, idx) => outputAdapter(pair, idx, globalData))
+		.filter(pair => pair != null);
 }
 
 
-function checkForAbs (branch, item, pair, globalData) {
-	if (isAbsKey(item.vnode.key)) {
-		let absItem = globalData[item.key];
-		if (absItem) {
-			absItem[branch] = item;
-			item.absItem = absItem;
-			absItem.n.vnode.orig.node = absItem.o.vnode.orig.node;
-			const diff = diffObj(absItem.o.vnode.params, absItem.n.vnode.params);
-			if (diff.length) {
-				absItem.diff = diff;
-			}
-		}
-		else {
-			absItem = {};
-			absItem[branch] = item;
-			item.absItem = absItem;
-			globalData[item.key] = absItem;
-		}
-	}
-}
+
 
 const defaultSettings = {
 	deep: true,
 	initKeygen: () => new KeyGen(),
-	outputAdapter: (pair, idx, globalData) => {
-		let item;
-		let diff;
-		if (pair.o && pair.n) {
-			diff = diffObj(pair.o.params, pair.n.params);
-			pair.n.vnode.orig.node = pair.o.vnode.orig.node;
-			if (!pair.move && !diff.length && (!pair.children || !pair.children.length)) {
-				return null;
-			}
-			item = {act: 0, move: pair.move, key: pair.key, vnode: pair.n.vnode, vnodePrev: pair.n.vnodePrev};
-		}
-		else if (pair.n) {
-			item = {act: 1, move: true, key: pair.key, vnode: pair.n.vnode, vnodePrev: pair.n.vnodePrev};
-			checkForAbs("n", item, pair, globalData);
-		}
-		else if (pair.o) {
-			item = {act: -1, key: pair.key, vnode: pair.o.vnode, vnodePrev: pair.o.vnodePrev};
-			checkForAbs("o", item, pair, globalData);
-		}
-
-		if (pair.n && pair.children && pair.children.length) {
-			item.children = pair.children;
-		}
-		if (diff && diff.length) {
-			item.diff = diff;
-		}
-		return item;
-	},
-	inputAdapter: (vnode) => {
-		const type = vnode[0];
-		const params = vnode[1] || {};
-		const content = vnode[2];
-		const isChildren = Array.isArray(content);
-		return {
-			type,
-			params,
-			children: isChildren ? content : null,
-			content: !isChildren ? content : null,
-			key: params.key,
-			orig: vnode,
-		};
-	},
 };
 
 /**
@@ -277,5 +271,11 @@ const defaultSettings = {
 export default function diff (o, n, settings) {
 	settings = Object.assign({}, defaultSettings, settings);
 	const globalData = settings.initGlobalData ? settings.initGlobalData() : {};
+	if (o && !Array.isArray(o)) {
+		o = [o];
+	}
+	if (n && !Array.isArray(n)) {
+		n = [n];
+	}
 	return diffOne(o, n, settings, globalData);
 }
