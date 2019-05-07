@@ -188,38 +188,40 @@ function diffOne (listOld, listNew, settings, globalData) {
 			}
 			else {
 				// find largest ordered group to minimize movement of dom nodes
-				let added = false;
-				const l = groups.length;
-				const i = pair.n.idx;
-				for (let gi = 0; gi < l; gi++) {
-					const group = groups[gi];
-					let length = group.length;
-					if (group[length - 1] < i) {
-						group.push(i);
-						added = true;
-						length++;
-					}
-					else if (group[0] < i) {
-						const newgroup = group.slice(0, find(group, i));
-						newgroup.push(i);
-						added = true;
-						length = newgroup.length;
-						groups.push(newgroup);
-					}
+				const findGrp = () => {
+					let added = false;
+					const l = groups.length;
+					const i = pair.n.idx;
+					for (let gi = 0; gi < l; gi++) {
+						const group = groups[gi];
+						let length = group.length;
+						if (group[length - 1] < i) {
+							group.push(i);
+							added = true;
+							length++;
+						}
+						else if (group[0] < i) {
+							const newgroup = group.slice(0, find(group, i));
+							newgroup.push(i);
+							added = true;
+							length = newgroup.length;
+							groups.push(newgroup);
+						}
 
-					if (length > maxlength) {
-						maxlength = length;
-						maxlengthidx = gi;
+						if (length > maxlength) {
+							maxlength = length;
+							maxlengthidx = gi;
+						}
 					}
-				}
-				if (!added) {
-					groups.push([i]);
-					if (maxlength === 0) {
-						maxlength = 1;
-						maxlengthidx = 0;
+					if (!added) {
+						groups.push([i]);
+						if (maxlength === 0) {
+							maxlength = 1;
+							maxlengthidx = 0;
+						}
 					}
-				}
-
+				};
+				findGrp();
 				pair.o = {idx, params: vnode.params, content: vnode.content, vnode, vnodePrev};
 			}
 

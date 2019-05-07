@@ -35,31 +35,64 @@
 				let initial = true;
 				return (newState) => {
 					newState = replaceRoot ? adapter(newState) : (newState || []).map(adapter);
-					console.log("newState", newState);
+					// console.log("newState", newState);
 					const diffData = activeView.diff(state, newState);
-					console.log("diffData", diffData);
+					// console.log("diffData", diffData);
 					activeView.patch(diffData, parent, {replaceRoot, initial});
 					initial = false;
 					state = newState;
 				};
 			}
-
+			const observableX = a => a;
 			const patch = createPatchFn(document.documentElement);
 			const data = observable({
 				title: "PERFECT TITLE",
-				items: sqnc(idx => `item${idx}`).toArray(10000),
+				items1: sqnc(idx => `item${idx}`).toArray(10000),
+				items2: sqnc(idx => idx).toArray(10000).sort((a, b) => {
+					if (a === 200) {
+						return -1;
+					}
+					else if (b === 200) {
+						return 1;
+					}
+					return a - b;
+				}).map(idx => `item${idx}`),
+				mode: 1,
 			})
 			window.data = data;
+			let count = 0;
 			reaction(() => {
-				console.log("reaction");
+				// console.log("reaction", ++count);
+
 				patch(["html", null, null, [
 					["head", null, null, [
 						["title", null, null, data.title],
 					]],
 					["body", null, null, [
-						...data.items.map((item, idx) => ["div", `item${idx}`, null, item]),
+						...data[`items${data.mode}`].map((item) => ["div", item, null, item]),
 					]],
 				]]);
+			});
+			let interval;
+			let times = 50;
+			document.addEventListener("click", () => {
+				if (!interval) {
+					console.time("measure");
+					interval = setInterval(() => {
+						if (times < 0) {
+							console.timeEnd("measure");
+							clearInterval(interval);
+							interval = null;
+						}
+						else {
+							times--;
+							activeData.run(() => {
+								data.mode = data.mode === 1 ? 2 : 1;
+							});
+							// data.items = [...data.items].sort(() => Math.random() - 0.5);
+						}
+					}, 100);
+				}
 			});
 
 			// const patch = createPatchFn(document.body, false);
